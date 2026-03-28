@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">Travel Diary</string>
+    <string name="splash_desc">Create beautiful memories of your travels. Add photos, notes, and locations to build your personal travel diary.</string>
+    <string name="splash_title">Capture Your Journey</string>
+</resources>

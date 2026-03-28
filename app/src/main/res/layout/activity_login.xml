@@ -1,0 +1,282 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/blue"
+
+    >
+    <ImageView
+        android:id="@+id/imageView"
+        android:layout_width="88dp"
+        android:layout_height="88dp"
+        android:layout_marginTop="32dp"
+        android:background="@drawable/bg_circle_white"
+        android:padding="20dp"
+        android:src="@drawable/ic_globe"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <TextView
+        android:id="@+id/login_title"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:text="Travel Journal"
+        android:textColor="@color/white"
+        android:textSize="28sp"
+        android:textStyle="bold"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/imageView" />
+
+    <TextView
+        android:id="@+id/login_desc"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:text="Your memories, beautifully organized"
+        android:textColor="@color/white"
+        android:textSize="17sp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/login_title" />
+
+    <ScrollView
+        android:id="@+id/white_card"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_marginTop="10dp"
+        android:background="@drawable/white_card_rounded"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/login_desc">
+
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+android:orientation="vertical"
+   android:layout_marginHorizontal="20dp"
+            android:layout_marginTop="30dp"
+>
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Welcome Back"
+                android:textColor="@color/black"
+                android:textSize="24sp"
+                android:textStyle="bold"
+/>
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Sign in to continue your journey"
+                android:textColor="@color/black"
+                android:textSize="16sp"
+
+                />
+
+
+<RelativeLayout
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:layout_marginTop="20dp"
+
+    >
+
+    <TextView
+        android:id="@+id/login_email"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Email Address"
+    android:textColor="@color/black"
+        android:textSize="14sp"
+        android:layout_alignParentStart="true"
+        />
+
+
+
+    <EditText
+        android:id="@+id/login_editemail"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_below="@+id/login_email"
+        android:drawableStart="@drawable/ic_mail"
+        android:drawableTint="@color/black"
+        android:layout_alignParentStart="true"
+        android:hint="Enter Your Email"
+        android:layout_marginTop="5dp"
+        android:drawablePadding="10dp"
+        android:inputType="textEmailAddress"
+        />
+    <TextView
+        android:id="@+id/login_pass"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Password"
+        android:textColor="@color/black"
+        android:textSize="14sp"
+        android:layout_below="@+id/login_editemail"
+        android:layout_alignParentStart="true"
+
+
+
+
+        />
+
+
+    <EditText
+        android:id="@+id/login_editpass"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:hint="Enter Your Password"
+        android:layout_below="@+id/login_pass"
+        android:drawableStart="@drawable/ic_lock"
+        android:drawableTint="@color/black"
+        android:layout_alignParentStart="true"
+        android:inputType="textPassword"
+        android:layout_marginTop="5dp"
+        android:drawablePadding="10dp"
+
+        >
+
+
+    </EditText>
+
+    <com.google.android.material.checkbox.MaterialCheckBox
+        android:id="@+id/login_remember"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:scaleX="0.8"
+        android:scaleY="0.8"
+        android:layout_alignParentStart="true"
+        android:layout_below="@+id/login_editpass"
+        android:textSize="12sp"
+        android:text="Remember Me"
+        android:textColor="@color/gray"
+        />
+    <TextView
+        android:id="@+id/login_forgot"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="15dp"
+        android:text="Forgot Password?"
+        android:onClick="Func"
+        android:textColor="@color/blue"
+        android:textStyle="bold"
+        android:layout_alignParentEnd="true"
+        android:layout_below="@+id/login_editpass"
+        />
+
+
+</RelativeLayout>
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/login_BTN"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:onClick="Func"
+                android:text="LOGIN"
+                android:textColor="@color/white"
+                app:cornerRadius="5dp"
+                app:layout_constraintBottom_toBottomOf="parent"
+                />
+            
+            
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layout_marginTop="20dp"
+
+                >
+            <View
+                android:layout_width="0dp"
+                android:layout_height="2dp"
+                android:background="@color/gray"
+                android:layout_weight="1"
+                android:layout_gravity="center"
+                />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="OR"
+          android:padding="5dp"
+                android:gravity="center_vertical"
+                />
+            <View
+                android:layout_gravity="center"
+                android:layout_width="0dp"
+                android:layout_height="2dp"
+                android:background="@color/gray"
+                android:layout_weight="1"
+                />
+
+</LinearLayout>
+
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layout_marginTop="15dp"
+                >
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/login_fbBTN"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:layout_marginEnd="5dp"
+                    app:cornerRadius="10dp"
+                    android:text="Facebook"
+                    android:onClick="Func"
+                    />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/login_goBTN"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:layout_marginStart="5dp"
+                    app:cornerRadius="10dp"
+                    android:text="Google"
+                    android:onClick="Func"
+
+                    />
+
+            </LinearLayout>
+
+
+<LinearLayout
+    android:orientation="horizontal"
+    android:layout_height="wrap_content"
+    android:layout_width="match_parent"
+    android:layout_marginTop="25dp"
+android:gravity="center_horizontal"
+
+    >
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Dont have an accounnt? "
+
+                />
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Sign Up"
+                android:onClick="Func"
+                android:textColor="@color/blue" />
+</LinearLayout>
+        </LinearLayout>
+
+
+
+    </ScrollView>
+
+
+</androidx.constraintlayout.widget.ConstraintLayout>

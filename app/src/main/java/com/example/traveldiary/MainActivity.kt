@@ -1,16 +1,4 @@
-package com.example.traveldiary
+package com.example.traveldiary // ⚠️ IMPORTANT: Leave your actual package name here! Do not copy this exact line.
 
-import android.os.Bundle
-import androidx.appcompat.app.AppCompatActivity
+//  importing R class and fragments!
 
-class MainActivity : AppCompatActivity() {
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_home)
-    }
-
-
-    fun func(){
-
-    }
-}

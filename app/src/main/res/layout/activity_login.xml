@@ -166,6 +166,7 @@ android:orientation="vertical"
         android:onClick="Func"
         android:textColor="@color/blue"
         android:textStyle="bold"
+        android:clickable="true"
         android:layout_alignParentEnd="true"
         android:layout_below="@+id/login_editpass"
         />
@@ -266,10 +267,12 @@ android:gravity="center_horizontal"
 
                 />
             <TextView
+                android:id="@+id/login_signup"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Sign Up"
                 android:onClick="Func"
+                android:clickable="true"
                 android:textColor="@color/blue" />
 </LinearLayout>
         </LinearLayout>

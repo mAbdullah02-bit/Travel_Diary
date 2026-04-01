@@ -12,13 +12,13 @@
         android:layout_width="30dp"
         android:layout_height="30dp"
         android:layout_marginTop="25dp"
-        android:tint="@color/white"
         android:src="@drawable/ic_back"
         android:layout_marginStart="20dp"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
         android:clickable="true"
-        android:onClick="Func"
+        app:tint="@color/white"
+
 
         />
 
@@ -301,6 +301,7 @@
                     />
 
                 <TextView
+                    android:id="@+id/backtologin"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:onClick="Func"

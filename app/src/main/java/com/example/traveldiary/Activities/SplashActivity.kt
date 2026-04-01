@@ -9,7 +9,7 @@ import com.example.traveldiary.R
 
 class SplashActivity : AppCompatActivity() {
 
-    override fun ocCreate(savedInstanceState: Bundle?) {
+    override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_splash)
 
@@ -23,6 +23,8 @@ class SplashActivity : AppCompatActivity() {
         }
         btnGuest.setOnClickListener {
             val intent = Intent(this, MainActivity::class.java)
+            intent.putExtra("USER_EMAIL", "Guest User")
+            intent.putExtra("IS_GUEST", true)
             startActivity(intent)
             finish()
 

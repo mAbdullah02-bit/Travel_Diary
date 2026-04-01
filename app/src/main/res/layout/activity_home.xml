@@ -79,6 +79,7 @@
                 android:orientation="vertical"
                 android:paddingTop="24dp"
                 app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintHorizontal_bias="0.0"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintTop_toBottomOf="@+id/search_bar">
 
@@ -104,8 +105,21 @@
                             android:gravity="center"
                             android:orientation="vertical"
                             android:padding="16dp">
-                            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="3" android:textColor="@color/blue" android:textSize="24sp" android:textStyle="bold" />
-                            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Trips" android:textColor="@color/gray" android:textSize="12sp" />
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="3"
+                                android:textColor="@color/blue"
+                                android:textSize="24sp"
+                                android:textStyle="bold" />
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Trips"
+                                android:textColor="@color/gray"
+                                android:textSize="12sp" />
                         </LinearLayout>
                     </com.google.android.material.card.MaterialCardView>
 
@@ -125,8 +139,21 @@
                             android:gravity="center"
                             android:orientation="vertical"
                             android:padding="16dp">
-                            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="8" android:textColor="#0F9D58" android:textSize="24sp" android:textStyle="bold" />
-                            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Photos" android:textColor="@color/gray" android:textSize="12sp" />
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="8"
+                                android:textColor="#0F9D58"
+                                android:textSize="24sp"
+                                android:textStyle="bold" />
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Photos"
+                                android:textColor="@color/gray"
+                                android:textSize="12sp" />
                         </LinearLayout>
                     </com.google.android.material.card.MaterialCardView>
 
@@ -146,8 +173,21 @@
                             android:gravity="center"
                             android:orientation="vertical"
                             android:padding="16dp">
-                            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="9" android:textColor="#9C27B0" android:textSize="24sp" android:textStyle="bold" />
-                            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Places" android:textColor="@color/gray" android:textSize="12sp" />
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="9"
+                                android:textColor="#9C27B0"
+                                android:textSize="24sp"
+                                android:textStyle="bold" />
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Places"
+                                android:textColor="@color/gray"
+                                android:textSize="12sp" />
                         </LinearLayout>
                     </com.google.android.material.card.MaterialCardView>
 
@@ -184,8 +224,18 @@
                 </RelativeLayout>
 
                 <include layout="@layout/trip_card" />
-                <include layout="@layout/trip_card" android:layout_marginTop="16dp" android:layout_width="match_parent" android:layout_height="wrap_content"/>
-                <include layout="@layout/trip_card" android:layout_marginTop="16dp" android:layout_width="match_parent" android:layout_height="wrap_content"/>
+
+                <include
+                    layout="@layout/trip_card"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp" />
+
+                <include
+                    layout="@layout/trip_card"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp" />
 
             </LinearLayout>
 
@@ -213,6 +263,7 @@ app:layout_constraintBottom_toBottomOf="parent">
         android:layout_height="45dp"
         android:layout_weight="1"
         android:clickable="true"
+        app:tint="@color/blue"
         android:src="@drawable/ic_home"
 
         />
@@ -223,7 +274,7 @@ app:layout_constraintBottom_toBottomOf="parent">
         android:layout_weight="1"
         android:clickable="true"
 
-        app:tint="@color/blue"
+
         android:src="@drawable/ic_explore" />
 
     <Space

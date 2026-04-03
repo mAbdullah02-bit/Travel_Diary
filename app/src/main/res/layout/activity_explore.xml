@@ -279,20 +279,12 @@
 
                 </RelativeLayout>
 
-                <include layout="@layout/item_explore_card"
-
-                    />
-
-                <include
-                    layout="@layout/item_explore_card"
-
-                     />
-
-                <include
-                    layout="@layout/item_explore_card"
-
-                    />
-
+                <androidx.recyclerview.widget.RecyclerView
+                    android:id="@+id/explore_recycler_view"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp"
+                    android:nestedScrollingEnabled="false" />
             </LinearLayout>
 
         </androidx.constraintlayout.widget.ConstraintLayout>

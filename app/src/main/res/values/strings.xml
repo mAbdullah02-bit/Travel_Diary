@@ -2,4 +2,7 @@
     <string name="app_name">Travel Diary</string>
     <string name="splash_desc">Create beautiful memories of your travels. Add photos, notes, and locations to build your personal travel diary.</string>
     <string name="splash_title">Capture Your Journey</string>
+    <string name="facebook_app_id">999592336439058</string>
+    <string name="facebook_client_token">9d355a2881bf529a8cfbbf265cee2627</string>
+    <string name="fb_login_protocol_scheme">fb999592336439058</string>
 </resources>

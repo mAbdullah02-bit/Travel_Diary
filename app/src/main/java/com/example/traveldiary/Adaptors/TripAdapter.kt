@@ -16,7 +16,7 @@ class TripAdapter (
     private val onTripClick: (Trip) -> Unit
 ): RecyclerView.Adapter<TripAdapter.TripViewHolder>() {
     class TripViewHolder(view: View) : RecyclerView.ViewHolder(view) {
-        val tripTitle: TextView = view.findViewById(R.id.card_title) // Check your actual XML ID
+        val tripTitle: TextView = view.findViewById(R.id.card_title)
         val tripLocation: TextView = view.findViewById(R.id.card_location)
         val tripImage: ImageView = view.findViewById(R.id.card_image)
         val tripVisibility: TextView = view.findViewById(R.id.card_visiblity)
@@ -24,7 +24,7 @@ class TripAdapter (
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): TripViewHolder {
         val view = LayoutInflater.from(parent.context)
-            .inflate(R.layout.trip_card, parent, false) // Make sure you have item_trip_card.xml!
+            .inflate(R.layout.trip_card, parent, false)
         return TripViewHolder(view)
     }
 
@@ -41,7 +41,7 @@ class TripAdapter (
     }
     fun updateData(newList: List<Trip>) {
         tripList = newList
-        notifyDataSetChanged() // Tells the RecyclerView to redraw the screen
+        notifyDataSetChanged()
     }
     override fun getItemCount(): Int {
         return tripList.size

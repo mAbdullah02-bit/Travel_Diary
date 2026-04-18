@@ -14,40 +14,21 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent">
 
-        <ImageView
-            android:id="@+id/noti_back"
-            android:layout_width="24dp"
-            android:layout_height="24dp"
-            android:layout_marginStart="20dp"
-            android:clickable="true"
-            android:src="@drawable/ic_back"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent"
-            app:tint="@color/white" />
-
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginStart="16dp"
-            android:text="Notifications"
+            android:text="Manage Notification"
             android:textColor="@color/white"
             android:textSize="20sp"
             android:textStyle="bold"
             app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintStart_toEndOf="@+id/noti_back"
-            app:layout_constraintTop_toTopOf="parent" />
-
-        <ImageView
-            android:id="@+id/noti_settings"
-            android:layout_width="24dp"
-            android:layout_height="24dp"
-            android:layout_marginEnd="20dp"
-            android:src="@drawable/ic_settings"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent"
-            app:tint="@color/white" />
+            app:layout_constraintEnd_toEndOf="parent"
+            />
+
+
     </androidx.constraintlayout.widget.ConstraintLayout>
 
     <ScrollView

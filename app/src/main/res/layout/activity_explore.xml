@@ -76,63 +76,69 @@
                 android:id="@+id/explore_tags"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                app:layout_constraintTop_toBottomOf="@id/search_bar"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintEnd_toEndOf="parent"
-                android:scrollbarAlwaysDrawHorizontalTrack="true"
+                android:clipToPadding="false"
                 android:padding="24dp"
-                android:clipToPadding="false"> <LinearLayout
-                android:layout_width="wrap_content" android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:layout_marginStart="10dp">
+                android:scrollbarAlwaysDrawHorizontalTrack="true"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintHorizontal_bias="1.0"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@id/search_bar">
 
-                <com.google.android.material.chip.Chip
-                    style="@style/Widget.MaterialComponents.Chip.Action"
-                    android:layout_width="wrap_content" android:layout_height="wrap_content"
-                    app:chipIcon="@drawable/ic_globe"
-                    app:chipIconTint="@color/white"
-                    app:chipBackgroundColor="@color/blue"
-                    android:text="All"
-                    android:textColor="@color/white"
-                    android:textSize="20sp" />
-
-                <com.google.android.material.chip.Chip
-                    style="@style/Widget.MaterialComponents.Chip.Action"
+                <LinearLayout
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginStart="10dp"
-                    app:chipIcon="@drawable/ic_globe"
-                    app:chipIconTint="@color/white"
-                    app:chipBackgroundColor="@color/blue"
-                    android:text="Public"
-                    android:textColor="@color/white"
-                    android:textSize="20sp" />
+                    android:orientation="horizontal">
 
-                <com.google.android.material.chip.Chip
-                    style="@style/Widget.MaterialComponents.Chip.Action"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginStart="10dp"
-                    app:chipIcon="@drawable/ic_globe"
-                    app:chipIconTint="@color/white"
-                    app:chipBackgroundColor="@color/blue"
+                    <com.google.android.material.chip.Chip
+                        style="@style/Widget.MaterialComponents.Chip.Action"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="All"
+                        android:textColor="@color/white"
+                        android:textSize="20sp"
+                        app:chipBackgroundColor="@color/blue"
+                        app:chipIcon="@drawable/ic_globe"
+                        app:chipIconTint="@color/white" />
 
-                    android:text="Trending"
-                    android:textColor="@color/white"
-                    android:textSize="20sp" />
+                    <com.google.android.material.chip.Chip
+                        style="@style/Widget.MaterialComponents.Chip.Action"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="10dp"
+                        android:text="Nearest"
+                        android:textColor="@color/white"
+                        android:textSize="20sp"
+                        app:chipBackgroundColor="@color/blue"
+                        app:chipIcon="@drawable/ic_globe"
+                        app:chipIconTint="@color/white" />
 
-                <com.google.android.material.chip.Chip
-                    style="@style/Widget.MaterialComponents.Chip.Action"
-                    android:layout_width="wrap_content" android:layout_height="wrap_content"
-                    android:layout_marginStart="10dp"
-                    app:chipIcon="@drawable/ic_globe"
-                    app:chipIconTint="@color/white"
-                    app:chipBackgroundColor="@color/blue"
-                    android:text="Recent"
-                    android:textColor="@color/white"
-                    android:textSize="20sp" />
+                    <com.google.android.material.chip.Chip
+                        style="@style/Widget.MaterialComponents.Chip.Action"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="10dp"
+                        android:text="Trending"
+                        android:textColor="@color/white"
+                        android:textSize="20sp"
 
-            </LinearLayout>
+                        app:chipBackgroundColor="@color/blue"
+                        app:chipIcon="@drawable/ic_globe"
+                        app:chipIconTint="@color/white" />
+
+                    <com.google.android.material.chip.Chip
+                        style="@style/Widget.MaterialComponents.Chip.Action"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="10dp"
+                        android:text="Recent"
+                        android:textColor="@color/white"
+                        android:textSize="20sp"
+                        app:chipBackgroundColor="@color/blue"
+                        app:chipIcon="@drawable/ic_globe"
+                        app:chipIconTint="@color/white" />
+
+                </LinearLayout>
 
             </HorizontalScrollView>
 

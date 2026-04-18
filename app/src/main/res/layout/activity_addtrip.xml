@@ -37,7 +37,8 @@
             android:textSize="20sp"
             android:textStyle="bold"
             app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintStart_toEndOf="@+id/newtrip_back"
+         app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintTop_toTopOf="parent" />
     </androidx.constraintlayout.widget.ConstraintLayout>
 
@@ -48,8 +49,7 @@
         android:clipToPadding="false"
         android:fillViewport="true"
         app:layout_constraintTop_toBottomOf="@+id/newtrip_header"
-        app:layout_constraintBottom_toBottomOf="parent"
-        >
+        app:layout_constraintBottom_toBottomOf="parent">
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -74,15 +74,28 @@
                 app:strokeColor="#BDBDBD"
                 app:strokeWidth="1dp">
 
-                <LinearLayout
+                <FrameLayout
+                    android:id="@+id/addtrip_cover_layout"
                     android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:gravity="center"
-                    android:orientation="vertical">
-                    <ImageView android:layout_width="40dp" android:layout_height="40dp" android:src="@drawable/ic_camera" app:tint="#9E9E9E" />
-                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:text="Tap to add cover photo" android:textColor="#757575" android:textSize="14sp" />
-                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Camera or Gallery" android:textColor="#9E9E9E" android:textSize="12sp" />
-                </LinearLayout>
+                    android:layout_height="match_parent">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:gravity="center"
+                        android:orientation="vertical">
+                        <ImageView  android:layout_width="40dp" android:layout_height="40dp" android:src="@drawable/ic_camera" app:tint="#9E9E9E" />
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:text="Tap to add cover photo" android:textColor="#757575" android:textSize="14sp" />
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Camera or Gallery" android:textColor="#9E9E9E" android:textSize="12sp" />
+                    </LinearLayout>
+
+                    <ImageView
+                        android:id="@+id/addtrip_cover_image"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:scaleType="centerCrop"
+                        android:visibility="gone" />
+                </FrameLayout>
             </com.google.android.material.card.MaterialCardView>
 
             <TextView
@@ -102,6 +115,7 @@
                 app:strokeColor="#EAEAEA"
                 app:strokeWidth="1dp">
                 <EditText
+                    android:id="@+id/addtrip_title"
                     android:layout_width="match_parent"
                     android:layout_height="50dp"
                     android:background="@null"
@@ -128,6 +142,7 @@
                 app:strokeColor="#EAEAEA"
                 app:strokeWidth="1dp">
                 <EditText
+                    android:id="@+id/addtrip_location"
                     android:layout_width="match_parent"
                     android:layout_height="50dp"
                     android:background="@null"
@@ -165,10 +180,11 @@
                 app:cardElevation="0dp"
                 app:strokeColor="#EAEAEA"
                 app:strokeWidth="1dp">
-                <EditText
+                <TextView
                     android:layout_width="match_parent"
                     android:layout_height="50dp"
                     android:background="@null"
+                    android:id="@+id/addtrip_date"
                     android:drawableStart="@drawable/ic_calandar"
                     android:drawablePadding="12dp"
                     android:drawableTint="#9E9E9E"
@@ -195,6 +211,7 @@
                 app:strokeColor="#EAEAEA"
                 app:strokeWidth="1dp">
                 <EditText
+                    android:id="@+id/addtrip_desc"
                     android:layout_width="match_parent"
                     android:layout_height="120dp"
                     android:background="@null"
@@ -265,7 +282,7 @@
                     app:cardElevation="0dp"
                     app:strokeColor="#EAEAEA"
                     app:strokeWidth="1dp">
-                    <LinearLayout android:layout_width="match_parent" android:layout_height="match_parent" android:orientation="vertical" android:gravity="center">
+                    <LinearLayout android:id="@+id/btn_open_gallery" android:layout_width="match_parent" android:layout_height="match_parent" android:orientation="vertical" android:gravity="center">
                         <ImageView android:layout_width="24dp" android:layout_height="24dp" android:src="@drawable/ic_photo" app:tint="#757575" />
                         <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:text="Photos" android:textColor="#757575" android:textSize="12sp" />
                     </LinearLayout>
@@ -280,7 +297,8 @@
                     app:cardElevation="0dp"
                     app:strokeColor="#EAEAEA"
                     app:strokeWidth="1dp">
-                    <LinearLayout android:layout_width="match_parent" android:layout_height="match_parent" android:orientation="vertical" android:gravity="center">
+                    <LinearLayout
+                        android:id="@+id/btn_take_photo" android:layout_width="match_parent"    android:layout_height="match_parent" android:orientation="vertical" android:gravity="center">
                         <ImageView android:layout_width="24dp" android:layout_height="24dp" android:src="@drawable/ic_camera" app:tint="#757575" />
                         <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:text="Camera" android:textColor="#757575" android:textSize="12sp" />
                     </LinearLayout>
@@ -295,7 +313,7 @@
                     app:cardElevation="0dp"
                     app:strokeColor="#EAEAEA"
                     app:strokeWidth="1dp">
-                    <LinearLayout android:layout_width="match_parent" android:layout_height="match_parent" android:orientation="vertical" android:gravity="center">
+                    <LinearLayout android:id="@+id/btn_record_video" android:layout_width="match_parent" android:layout_height="match_parent" android:orientation="vertical" android:gravity="center">
                         <ImageView android:layout_width="24dp" android:layout_height="24dp" android:src="@drawable/ic_video" app:tint="#757575" />
                         <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:text="Video" android:textColor="#757575" android:textSize="12sp" />
                     </LinearLayout>
@@ -303,6 +321,7 @@
             </LinearLayout>
 
             <com.google.android.material.button.MaterialButton
+                android:id="@+id/addtrip_save_btn"
                 android:layout_width="match_parent"
                 android:layout_height="56dp"
                 android:layout_marginTop="32dp"
@@ -315,7 +334,4 @@
 
         </LinearLayout>
     </ScrollView>
-
-
-
 </androidx.constraintlayout.widget.ConstraintLayout>

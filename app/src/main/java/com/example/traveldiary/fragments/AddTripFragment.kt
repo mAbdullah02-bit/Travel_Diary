@@ -11,16 +11,17 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
 import android.widget.EditText
+import android.widget.FrameLayout
 import android.widget.ImageView
 import android.widget.LinearLayout
+import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.appcompat.widget.SwitchCompat
 import androidx.fragment.app.Fragment
+import com.example.traveldiary.DatabaseHelper
 import com.example.traveldiary.R
 import com.example.traveldiary.models.Trip
-import android.widget.FrameLayout
-import android.widget.TextView
-
 class AddTripFragment : Fragment() {
 
     private var selectedImageUri: Uri? = null
@@ -34,7 +35,7 @@ class AddTripFragment : Fragment() {
     private val pickGalleryImageLauncher = registerForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
         if (uri != null) {
             selectedImageUri = uri
-            coverImageView.setImageURI(uri) // Pass the image to the ImageView inside the layout
+            coverImageView.setImageURI(uri)
             coverImageView.visibility = View.VISIBLE
         }
     }
@@ -63,9 +64,6 @@ class AddTripFragment : Fragment() {
 
         // Find your UI Elements
         val backButton = view.findViewById<ImageView>(R.id.newtrip_back)
-
-        // NEW: The Cover layout (Clickable) and the Image inside it (Display)
-        // Ensure you have BOTH of these IDs in your XML!
         coverPhotoLayout = view.findViewById(R.id.addtrip_cover_layout)
         coverImageView = view.findViewById(R.id.addtrip_cover_image)
 
@@ -73,9 +71,12 @@ class AddTripFragment : Fragment() {
         val locationInput = view.findViewById<EditText>(R.id.addtrip_location)
         val dateInput = view.findViewById<TextView>(R.id.addtrip_date)
         val descInput = view.findViewById<EditText>(R.id.addtrip_desc)
+
+        // NEW: Find the Switch
+        val publicSwitch = view.findViewById<SwitchCompat>(R.id.addtrip_public_switch)
+
         val saveButton = view.findViewById<Button>(R.id.addtrip_save_btn)
 
-        // NEW: Bottom three action buttons updated to LinearLayouts!
         val btnOpenGallery = view.findViewById<LinearLayout>(R.id.btn_open_gallery)
         val btnTakePhoto = view.findViewById<LinearLayout>(R.id.btn_take_photo)
         val btnRecordVideo = view.findViewById<LinearLayout>(R.id.btn_record_video)
@@ -84,86 +85,97 @@ class AddTripFragment : Fragment() {
         val isEditMode = arguments?.getBoolean("IS_EDIT_MODE") ?: false
         var editingTripId = -1
 
-
-        // CALANDAR
+        // CALENDAR
         dateInput.setOnClickListener {
-            // Get today's date to set as the default on the calendar
             val calendar = java.util.Calendar.getInstance()
             val year = calendar.get(java.util.Calendar.YEAR)
             val month = calendar.get(java.util.Calendar.MONTH)
             val day = calendar.get(java.util.Calendar.DAY_OF_MONTH)
 
-            // Open the official Android Date Picker
             val datePickerDialog = android.app.DatePickerDialog(
                 requireContext(),
                 { _, selectedYear, selectedMonth, selectedDay ->
-                    // Format the selected date and set it to the TextView
-                    // Note: Months are 0-indexed, so we add 1
                     val formattedDate = "$selectedDay/${selectedMonth + 1}/$selectedYear"
                     dateInput.text = formattedDate
                 },
-                year,
-                month,
-                day
+                year, month, day
             )
             datePickerDialog.show()
         }
+
         backButton.setOnClickListener {
             parentFragmentManager.popBackStack()
         }
 
         // --- MEDIA BUTTON CLICKS ---
-
-        // Clicking anywhere on the Cover Layout opens the gallery
-        coverPhotoLayout.setOnClickListener {
-            pickGalleryImageLauncher.launch("image/*")
-        }
-
-        btnOpenGallery.setOnClickListener {
-            pickGalleryImageLauncher.launch("image/*")
-        }
-
-        btnTakePhoto.setOnClickListener {
-            takePhotoLauncher.launch(null)
-        }
-
+        coverPhotoLayout.setOnClickListener { pickGalleryImageLauncher.launch("image/*") }
+        btnOpenGallery.setOnClickListener { pickGalleryImageLauncher.launch("image/*") }
+        btnTakePhoto.setOnClickListener { takePhotoLauncher.launch(null) }
         btnRecordVideo.setOnClickListener {
             val videoIntent = Intent(MediaStore.ACTION_VIDEO_CAPTURE)
             recordVideoLauncher.launch(videoIntent)
         }
 
-        // --- POPULATE AND SAVE LOGIC ---
-
+        // --- POPULATE IF EDITING ---
         if (isEditMode) {
             val tripToEdit = arguments?.getSerializable("TRIP_DATA") as? Trip
 
             if (tripToEdit != null) {
+                editingTripId = tripToEdit.id
+
                 titleInput.setText(tripToEdit.title)
                 locationInput.setText(tripToEdit.location)
                 dateInput.setText(tripToEdit.date)
                 descInput.setText(tripToEdit.description)
+                publicSwitch.isChecked = tripToEdit.isPublic // Set the switch state!
+
+                if (tripToEdit.imageUri.isNotEmpty()) {
+                    selectedImageUri = Uri.parse(tripToEdit.imageUri)
+                    coverImageView.setImageURI(selectedImageUri)
+                    coverImageView.visibility = View.VISIBLE
+                }
 
                 saveButton.text = "Update Trip"
             }
         }
 
+        // --- SAVE TO DATABASE ---
         saveButton.setOnClickListener {
             val newTitle = titleInput.text.toString().trim()
             val newLocation = locationInput.text.toString().trim()
             val newDate = dateInput.text.toString().trim()
             val newDesc = descInput.text.toString().trim()
 
+            // Convert boolean to integer for SQLite (1 for True/Public, 0 for False/Private)
+            val isPublicInt = if (publicSwitch.isChecked) 1 else 0
+
             if (newTitle.isEmpty() || newLocation.isEmpty()) {
                 Toast.makeText(requireContext(), "Please fill in the title and location!", Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
 
+            val dbHelper = DatabaseHelper(requireContext())
+            val imagePathString = selectedImageUri?.toString() ?: ""
+
+            // TODO: Replace this hardcoded string with FirebaseAuth.getInstance().currentUser?.email
+            val currentUserEmail = "test@example.com"
+
             if (isEditMode) {
-                // TODO: Call your JAVA SQLite Database Helper to UPDATE the existing trip here
-                Toast.makeText(requireContext(), "Trip Updated!", Toast.LENGTH_SHORT).show()
+                // Call upgraded updateTrip method
+                val success = dbHelper.updateTrip(editingTripId, newTitle, newLocation, newDate, newDesc, imagePathString, isPublicInt)
+                if (success) {
+                    Toast.makeText(requireContext(), "Trip Updated!", Toast.LENGTH_SHORT).show()
+                } else {
+                    Toast.makeText(requireContext(), "Error updating trip", Toast.LENGTH_SHORT).show()
+                }
             } else {
-                // TODO: Call your JAVA SQLite Database Helper to INSERT a new trip here
-                Toast.makeText(requireContext(), "New Trip Saved!", Toast.LENGTH_SHORT).show()
+                // Call upgraded insertTrip method with userEmail and isPublicInt
+                val resultId = dbHelper.insertTrip(currentUserEmail, newTitle, newLocation, newDate, newDesc, imagePathString, isPublicInt)
+                if (resultId != -1L) {
+                    Toast.makeText(requireContext(), "New Trip Saved!", Toast.LENGTH_SHORT).show()
+                } else {
+                    Toast.makeText(requireContext(), "Error saving trip", Toast.LENGTH_SHORT).show()
+                }
             }
 
             parentFragmentManager.popBackStack()

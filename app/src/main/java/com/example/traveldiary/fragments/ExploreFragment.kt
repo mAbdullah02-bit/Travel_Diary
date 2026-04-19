@@ -28,7 +28,7 @@ class ExploreFragment : Fragment() {
         val searchBar = view.findViewById<EditText>(R.id.search_bar)
         val recyclerView = view.findViewById<RecyclerView>(R.id.explore_recycler_view)
 
-        // 1. Create the Master Data List (Make sure you have some images in your drawable folder!)
+        // Create the Master Data List (Make sure you have some images in your drawable folder!)
         fullTripList = listOf(
             Trip("Summer in Paris", "Paris, France", "June 2026", "Amazing views of the Eiffel Tower.", R.drawable.ic_image_replacer_foreground, 5.0),
             Trip("Hiking the Alps", "Swiss Alps", "July 2026", "Very cold but beautiful trails.", R.drawable.ic_image_replacer_foreground, 4.5),
@@ -36,10 +36,10 @@ class ExploreFragment : Fragment() {
             Trip("Tokyo Lights", "Tokyo, Japan", "September 2026", "Exploring the busy city streets.", R.drawable.ic_image_replacer_foreground, 4.9)
         )
 
-        // 2. Setup the RecyclerView
+        //  Setup the RecyclerView
         recyclerView.layoutManager = LinearLayoutManager(requireContext())
 
-        // 3. Attach Adapter and handle clicks (Requirement F2)
+        //  Attach Adapter and handle clicks (Requirement F2)
         adapter = ExploreAdapter(fullTripList) { clickedTrip ->
             val detailFragment = ExploreDetailFragment()
             val bundle = Bundle()

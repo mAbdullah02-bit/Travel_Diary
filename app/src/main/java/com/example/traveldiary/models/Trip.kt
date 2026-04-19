@@ -1,16 +1,16 @@
 package com.example.traveldiary.models
 
 import java.io.Serializable
+import com.example.traveldiary.R
 
 data class Trip(
-        val title:String,
-
-        val location:String,
-
-        val date:String,
-        val description:String,
-        val imageResId:Int,
-        val rating:Double
-
-
-) :Serializable
+    var title: String,
+    var location: String,
+    var date: String,
+    var description: String,
+    var imageResId: Int = R.drawable.ic_image_replacer_foreground,
+    var rating: Double = 0.0,
+    var id: Int = -1,
+    var imageUri: String = "",
+    var isPublic: Boolean = false
+) : Serializable

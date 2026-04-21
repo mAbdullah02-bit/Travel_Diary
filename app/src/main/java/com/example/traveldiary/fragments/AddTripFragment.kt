@@ -22,6 +22,8 @@ import androidx.fragment.app.Fragment
 import com.example.traveldiary.DatabaseHelper
 import com.example.traveldiary.R
 import com.example.traveldiary.models.Trip
+import com.google.firebase.auth.FirebaseAuth
+
 class AddTripFragment : Fragment() {
 
     private var selectedImageUri: Uri? = null
@@ -104,7 +106,13 @@ class AddTripFragment : Fragment() {
         }
 
         backButton.setOnClickListener {
-            parentFragmentManager.popBackStack()
+            if (parentFragmentManager.backStackEntryCount > 0) {
+                parentFragmentManager.popBackStack()
+            } else {
+                requireActivity().supportFragmentManager.beginTransaction()
+                    .replace(R.id.fragment_container, HomeFragment())
+                    .commit()
+            }
         }
 
         // --- MEDIA BUTTON CLICKS ---
@@ -127,7 +135,7 @@ class AddTripFragment : Fragment() {
                 locationInput.setText(tripToEdit.location)
                 dateInput.setText(tripToEdit.date)
                 descInput.setText(tripToEdit.description)
-                publicSwitch.isChecked = tripToEdit.isPublic // Set the switch state!
+                publicSwitch.isChecked = tripToEdit.isPublic
 
                 if (tripToEdit.imageUri.isNotEmpty()) {
                     selectedImageUri = Uri.parse(tripToEdit.imageUri)
@@ -139,46 +147,72 @@ class AddTripFragment : Fragment() {
             }
         }
 
-        // --- SAVE TO DATABASE ---
         saveButton.setOnClickListener {
-            val newTitle = titleInput.text.toString().trim()
-            val newLocation = locationInput.text.toString().trim()
-            val newDate = dateInput.text.toString().trim()
-            val newDesc = descInput.text.toString().trim()
+            val tripTitle = titleInput.text.toString().trim()
+            val tripLocation = locationInput.text.toString().trim()
+            val currentUserEmail = FirebaseAuth.getInstance().currentUser?.email ?: "guest@example.com"
 
-            // Convert boolean to integer for SQLite (1 for True/Public, 0 for False/Private)
-            val isPublicInt = if (publicSwitch.isChecked) 1 else 0
+            val tripDate = dateInput.text.toString().trim()
+            val tripDescription = descInput.text.toString().trim()
+            val coverImageUri = selectedImageUri?.toString() ?: ""
+            val isPublic = if (publicSwitch.isChecked) 1 else 0
 
-            if (newTitle.isEmpty() || newLocation.isEmpty()) {
-                Toast.makeText(requireContext(), "Please fill in the title and location!", Toast.LENGTH_SHORT).show()
+            if (tripTitle.isEmpty() || tripLocation.isEmpty()) {
+                Toast.makeText(requireContext(), "Please fill in all required fields", Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
 
+            it.isEnabled = false
             val dbHelper = DatabaseHelper(requireContext())
-            val imagePathString = selectedImageUri?.toString() ?: ""
 
-            // TODO: Replace this hardcoded string with FirebaseAuth.getInstance().currentUser?.email
-            val currentUserEmail = "test@example.com"
-
-            if (isEditMode) {
-                // Call upgraded updateTrip method
-                val success = dbHelper.updateTrip(editingTripId, newTitle, newLocation, newDate, newDesc, imagePathString, isPublicInt)
-                if (success) {
-                    Toast.makeText(requireContext(), "Trip Updated!", Toast.LENGTH_SHORT).show()
-                } else {
-                    Toast.makeText(requireContext(), "Error updating trip", Toast.LENGTH_SHORT).show()
-                }
-            } else {
-                // Call upgraded insertTrip method with userEmail and isPublicInt
-                val resultId = dbHelper.insertTrip(currentUserEmail, newTitle, newLocation, newDate, newDesc, imagePathString, isPublicInt)
-                if (resultId != -1L) {
-                    Toast.makeText(requireContext(), "New Trip Saved!", Toast.LENGTH_SHORT).show()
-                } else {
-                    Toast.makeText(requireContext(), "Error saving trip", Toast.LENGTH_SHORT).show()
-                }
+            // --- FIX 1: DUPLICATE CHECK (Exclude current trip ID if editing) ---
+            if (dbHelper.isDuplicateTrip(tripTitle, tripLocation, currentUserEmail, editingTripId)) {
+                Toast.makeText(requireContext(), "A trip to this location with this title already exists!", Toast.LENGTH_LONG).show()
+                it.isEnabled = true
+                return@setOnClickListener
             }
 
-            parentFragmentManager.popBackStack()
+            val success: Boolean
+            if (isEditMode) {
+                // --- FIX 2: UPDATE MODE ---
+                success = dbHelper.updateTrip(
+                    editingTripId,
+                    tripTitle,
+                    tripLocation,
+                    tripDate,
+                    tripDescription,
+                    coverImageUri,
+                    isPublic
+                )
+            } else {
+                // --- INSERT MODE ---
+                val newRowId = dbHelper.insertTrip(
+                    currentUserEmail,
+                    tripTitle,
+                    tripLocation,
+                    tripDate,
+                    tripDescription,
+                    coverImageUri,
+                    isPublic
+                )
+                success = newRowId != -1L
+            }
+
+            if (success) {
+                Toast.makeText(requireContext(), if (isEditMode) "Trip Updated!" else "Trip Saved!", Toast.LENGTH_SHORT).show()
+                
+                // Auto Go-Back
+                if (parentFragmentManager.backStackEntryCount > 0) {
+                    parentFragmentManager.popBackStack()
+                } else {
+                    requireActivity().supportFragmentManager.beginTransaction()
+                        .replace(R.id.fragment_container, HomeFragment())
+                        .commit()
+                }
+            } else {
+                Toast.makeText(requireContext(), "Database Error: Could not save trip.", Toast.LENGTH_SHORT).show()
+                it.isEnabled = true
+            }
         }
 
         return view

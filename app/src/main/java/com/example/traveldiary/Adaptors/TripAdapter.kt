@@ -10,11 +10,8 @@ import androidx.recyclerview.widget.RecyclerView
 import com.example.traveldiary.R
 import com.example.traveldiary.models.Trip
 
-class TripAdapter (
-
-    private var tripList: List<Trip>,
-    private val onTripClick: (Trip) -> Unit
-): RecyclerView.Adapter<TripAdapter.TripViewHolder>() {
+class TripAdapter(private val tripList: MutableList<Trip>,private val onTripClick: (Trip) -> Unit
+) : RecyclerView.Adapter<TripAdapter.TripViewHolder>() {
     class TripViewHolder(view: View) : RecyclerView.ViewHolder(view) {
         val tripTitle: TextView = view.findViewById(R.id.card_title)
         val tripLocation: TextView = view.findViewById(R.id.card_location)
@@ -33,16 +30,33 @@ class TripAdapter (
 
         holder.tripTitle.text = currentTrip.title
         holder.tripLocation.text = currentTrip.location
-        holder.tripImage.setImageResource(currentTrip.imageResId)
-        // When the card is clicked, pass the whole Trip object out to the Fragment!
+
+        // --- FIX 1: Handle Database Images ---
+        if (currentTrip.imageUri.isNotEmpty()) {
+            // If there's a URI from the gallery/camera, use it
+            holder.tripImage.setImageURI(android.net.Uri.parse(currentTrip.imageUri))
+        } else {
+            // Otherwise, use the default icon
+            holder.tripImage.setImageResource(currentTrip.imageResId)
+        }
+
+        // --- FIX 2: Show Visibility ---
+        holder.tripVisibility.text = if (currentTrip.isPublic) "Public" else "Private"
+
         holder.itemView.setOnClickListener {
             onTripClick(currentTrip)
         }
     }
+
     fun updateData(newList: List<Trip>) {
-        tripList = newList
+        // --- CRITICAL FIX: Prevent clearing if it's the same list object ---
+        if (this.tripList !== newList) {
+            this.tripList.clear()
+            this.tripList.addAll(newList)
+        }
         notifyDataSetChanged()
     }
+
     override fun getItemCount(): Int {
         return tripList.size
     }

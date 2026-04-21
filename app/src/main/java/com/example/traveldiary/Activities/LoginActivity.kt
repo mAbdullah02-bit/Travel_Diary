@@ -10,6 +10,7 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
+import com.example.traveldiary.DatabaseHelper
 import com.example.traveldiary.R
 import com.facebook.AccessToken
 import com.facebook.CallbackManager
@@ -31,6 +32,7 @@ class LoginActivity : AppCompatActivity() {
     private lateinit var googleSignInClient: GoogleSignInClient
     private lateinit var callbackManager: CallbackManager
     private lateinit var sharedPreferences: SharedPreferences
+    private lateinit var dbHelper: DatabaseHelper //  DB
 
     // Google Catcher
     private val googleSignInLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
@@ -50,11 +52,12 @@ class LoginActivity : AppCompatActivity() {
         setContentView(R.layout.activity_login)
 
         auth = FirebaseAuth.getInstance()
+        dbHelper = DatabaseHelper(this)
         sharedPreferences = getSharedPreferences("LoginPrefs", Context.MODE_PRIVATE)
 
-        //  AUTO start If already logged in
+        // AUTO start If already logged in
         if (auth.currentUser != null) {
-            goToMainActivity(auth.currentUser?.email ?: "User")
+            syncToLocalDatabaseAndGo(auth.currentUser?.email ?: "User")
             return
         }
 
@@ -75,14 +78,14 @@ class LoginActivity : AppCompatActivity() {
             loginCheck.isChecked = true
         }
 
-        //  GOOGLE SETUP
+        // GOOGLE SETUP
         val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
-            .requestIdToken("YOUR_WEB_CLIENT_ID_HERE") // Keep your working Web Client ID here!
+            .requestIdToken(getString(R.string.default_web_client_id))
             .requestEmail()
             .build()
         googleSignInClient = GoogleSignIn.getClient(this, gso)
 
-        //  FACEBOOK SETUP
+        // FACEBOOK SETUP
         callbackManager = CallbackManager.Factory.create()
         LoginManager.getInstance().registerCallback(callbackManager, object : FacebookCallback<LoginResult> {
             override fun onSuccess(result: LoginResult) {
@@ -96,20 +99,30 @@ class LoginActivity : AppCompatActivity() {
             }
         })
 
-        //  BUTTON CLICKS
-
+        // BUTTON CLICKS
         btnLogin.setOnClickListener {
-            val usrEmail = semail.text.toString()
+            val usrEmail = semail.text.toString().trim()
             val usrPass = spass.text.toString()
 
-
-            if (loginCheck.isChecked) {
-                sharedPreferences.edit().putString("EMAIL", usrEmail).putString("PASSWORD", usrPass).apply()
-            } else {
-                sharedPreferences.edit().clear().apply()
+            if (usrEmail.isEmpty() || usrPass.isEmpty()) {
+                Toast.makeText(this, "Please enter email and password", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
             }
 
-            goToMainActivity(usrEmail)
+            // FIXED: Actually log in to Firebase!
+            auth.signInWithEmailAndPassword(usrEmail, usrPass)
+                .addOnCompleteListener(this) { task ->
+                    if (task.isSuccessful) {
+                        if (loginCheck.isChecked) {
+                            sharedPreferences.edit().putString("EMAIL", usrEmail).putString("PASSWORD", usrPass).apply()
+                        } else {
+                            sharedPreferences.edit().clear().apply()
+                        }
+                        syncToLocalDatabaseAndGo(usrEmail)
+                    } else {
+                        Toast.makeText(this, "Login Failed: ${task.exception?.message}", Toast.LENGTH_LONG).show()
+                    }
+                }
         }
 
         btnGoogle.setOnClickListener {
@@ -118,7 +131,6 @@ class LoginActivity : AppCompatActivity() {
         }
 
         btnFB.setOnClickListener {
-            // Launch the official Facebook login popup
             LoginManager.getInstance().logInWithReadPermissions(this, listOf("email", "public_profile"))
         }
 
@@ -133,33 +145,36 @@ class LoginActivity : AppCompatActivity() {
         }
     }
 
-    // --- FACEBOOK CATCHER: This is required to catch the result from the FB popup ---
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
         callbackManager.onActivityResult(requestCode, resultCode, data)
     }
 
-    // --- FIREBASE AUTHENTICATION FUNCTIONS ---
-
     private fun firebaseAuthWithGoogle(idToken: String) {
         val credential = GoogleAuthProvider.getCredential(idToken, null)
-        auth.signInWithCredential(credential)
-            .addOnCompleteListener(this) { task ->
-                if (task.isSuccessful) goToMainActivity(auth.currentUser?.email ?: "Google User")
-                else Toast.makeText(this, "Firebase Google Auth Failed", Toast.LENGTH_SHORT).show()
-            }
+        auth.signInWithCredential(credential).addOnCompleteListener(this) { task ->
+            if (task.isSuccessful) syncToLocalDatabaseAndGo(auth.currentUser?.email ?: "Google User")
+            else Toast.makeText(this, "Firebase Google Auth Failed", Toast.LENGTH_SHORT).show()
+        }
     }
 
     private fun handleFacebookAccessToken(token: AccessToken) {
         val credential = FacebookAuthProvider.getCredential(token.token)
-        auth.signInWithCredential(credential)
-            .addOnCompleteListener(this) { task ->
-                if (task.isSuccessful) goToMainActivity(auth.currentUser?.email ?: "Facebook User")
-                else Toast.makeText(this, "Firebase FB Auth Failed", Toast.LENGTH_SHORT).show()
-            }
+        auth.signInWithCredential(credential).addOnCompleteListener(this) { task ->
+            if (task.isSuccessful) syncToLocalDatabaseAndGo(auth.currentUser?.email ?: "Facebook User")
+            else Toast.makeText(this, "Firebase FB Auth Failed", Toast.LENGTH_SHORT).show()
+        }
     }
 
-    private fun goToMainActivity(email: String) {
+    // NEW: Syncs Firebase User to SQLite, then launches MainActivity
+    private fun syncToLocalDatabaseAndGo(email: String) {
+        val user = auth.currentUser
+        val name = user?.displayName ?: "Traveler"
+        val photoUrl = user?.photoUrl?.toString() ?: ""
+
+        // Save to local SQLite database so Trips can be linked to this user
+        dbHelper.saveOrUpdateUser(email, name, "Ready to explore!", photoUrl)
+
         val intent = Intent(this, MainActivity::class.java)
         intent.putExtra("User Email", email)
         intent.putExtra("Is Guest", false)

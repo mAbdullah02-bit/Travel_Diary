@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "683244760923",
+    "project_id": "travel-diary-fd105",
+    "storage_bucket": "travel-diary-fd105.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:683244760923:android:0b5d9745a2081d5463347e",
+        "android_client_info": {
+          "package_name": "com.example.traveldiary"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "683244760923-2b0nvie9j6pq0qj1a2rte6ov7a8nop1e.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.traveldiary",
+            "certificate_hash": "498c9bbe36b0bfc297b1b5fd5b677db643bca76e"
+          }
+        },
+        {
+          "client_id": "683244760923-q995m7ev29hikr5lfranmb8j9feg7635.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD5PkKLMrRluCvsC5f5kqdgd0Nk7VwM2UQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "683244760923-q995m7ev29hikr5lfranmb8j9feg7635.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

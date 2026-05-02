@@ -7,6 +7,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.EditText
+import android.widget.TextView
 import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -14,11 +15,18 @@ import com.example.traveldiary.Adaptors.ExploreAdapter
 import com.example.traveldiary.DatabaseHelper
 import com.example.traveldiary.R
 import com.example.traveldiary.models.Trip
+import com.google.firebase.auth.FirebaseAuth
+import java.util.Locale
 
 class ExploreFragment : Fragment() {
 
     private lateinit var adapter: ExploreAdapter
     private var fullTripList = mutableListOf<Trip>()
+    
+    // Dashboard TextViews
+    private lateinit var totalTripsText: TextView
+    private lateinit var totalPhotosText: TextView
+    private lateinit var totalPlacesText: TextView
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -27,8 +35,13 @@ class ExploreFragment : Fragment() {
         val view = inflater.inflate(R.layout.activity_explore, container, false)
         val searchBar = view.findViewById<EditText>(R.id.search_bar)
         val recyclerView = view.findViewById<RecyclerView>(R.id.explore_recycler_view)
+        
+        // Find Dashboard IDs
+        totalTripsText = view.findViewById(R.id.explore_trips_count)
+        totalPhotosText = view.findViewById(R.id.explore_photos_count)
+        totalPlacesText = view.findViewById(R.id.explore_places_count)
 
-        adapter = ExploreAdapter(fullTripList) { clickedTrip ->
+        adapter = ExploreAdapter(mutableListOf()) { clickedTrip ->
             val detailFragment = ExploreDetailFragment()
             val bundle = Bundle()
             bundle.putSerializable("TRIP_DATA", clickedTrip)
@@ -56,31 +69,65 @@ class ExploreFragment : Fragment() {
 
     override fun onResume() {
         super.onResume()
+        // TODO: In the future, this will fetch from Firebase Firestore instead of SQLite
         loadPublicTrips()
+        updateExploreDashboard()
+    }
+
+    private fun updateExploreDashboard() {
+        val dbHelper = DatabaseHelper(requireContext())
+        
+        // Fetching real overall public data from SQLite
+        val totalTrips = dbHelper.getTotalPublicTripCount()
+        val totalPhotos = dbHelper.getTotalPublicPhotoCount()
+        val totalPlaces = dbHelper.getTotalPublicPlaceCount()
+        
+        totalTripsText.text = formatCount(totalTrips)
+        totalPhotosText.text = formatCount(totalPhotos)
+        totalPlacesText.text = formatCount(totalPlaces)
+    }
+    
+    private fun formatCount(count: Int): String {
+        return if (count >= 1000) {
+            String.format(Locale.US, "%.1fk", count / 1000.0)
+        } else {
+            count.toString()
+        }
     }
 
     private fun loadPublicTrips() {
         val dbHelper = DatabaseHelper(requireContext())
-        val cursor = dbHelper.getPublicTrips() // NEW: Fetches community trips!
+        val currentUserEmail = FirebaseAuth.getInstance().currentUser?.email ?: "guest@example.com"
+        // TODO: Replace this query with Firebase 'trips' collection query where 'isPublic' == true
+        val cursor = dbHelper.getPublicTrips() 
 
-        fullTripList.clear()
+        val freshList = mutableListOf<Trip>()
 
         if (cursor != null && cursor.moveToFirst()) {
             do {
+                val tripId = cursor.getInt(cursor.getColumnIndexOrThrow("id"))
                 val trip = Trip(
-                    id = cursor.getInt(cursor.getColumnIndexOrThrow("id")),
+                    id = tripId,
                     title = cursor.getString(cursor.getColumnIndexOrThrow("title")),
                     location = cursor.getString(cursor.getColumnIndexOrThrow("location")),
                     date = cursor.getString(cursor.getColumnIndexOrThrow("date")),
                     description = cursor.getString(cursor.getColumnIndexOrThrow("description")),
-                    imageUri = cursor.getString(cursor.getColumnIndexOrThrow("cover_image")),
-                    isPublic = true // Always true because of the SQL query
+                    imageUri = cursor.getString(cursor.getColumnIndexOrThrow("cover_image")) ?: "",
+                    isPublic = true,
+                    authorName = cursor.getString(cursor.getColumnIndexOrThrow("author_name")) ?: "Traveler",
+                    // --- FIX: Populate properties so DiffUtil detects real changes (e.g. Likes) ---
+                    likeCount = dbHelper.getLikeCount(tripId),
+                    commentCount = dbHelper.getCommentCount(tripId),
+                    isLikedByMe = dbHelper.isTripLikedByUser(tripId, currentUserEmail)
                 )
-                fullTripList.add(trip)
+                freshList.add(trip)
             } while (cursor.moveToNext())
             cursor.close()
         }
-        adapter.updateData(fullTripList)
+        
+        fullTripList.clear()
+        fullTripList.addAll(freshList)
+        adapter.updateData(ArrayList(fullTripList)) 
     }
 
     private fun filterList(query: String) {
@@ -91,6 +138,6 @@ class ExploreFragment : Fragment() {
                 trip.title.contains(query, ignoreCase = true) || trip.location.contains(query, ignoreCase = true)
             }
         }
-        adapter.updateData(filteredList)
+        adapter.updateData(ArrayList(filteredList))
     }
 }

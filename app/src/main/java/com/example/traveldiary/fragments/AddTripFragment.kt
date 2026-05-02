@@ -23,6 +23,8 @@ import com.example.traveldiary.DatabaseHelper
 import com.example.traveldiary.R
 import com.example.traveldiary.models.Trip
 import com.google.firebase.auth.FirebaseAuth
+import java.io.File
+import java.io.FileOutputStream
 
 class AddTripFragment : Fragment() {
 
@@ -35,18 +37,25 @@ class AddTripFragment : Fragment() {
 
     // 1. LAUNCHER: Open Phone Gallery
     private val pickGalleryImageLauncher = registerForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
-        if (uri != null) {
-            selectedImageUri = uri
-            coverImageView.setImageURI(uri)
-            coverImageView.visibility = View.VISIBLE
+        uri?.let {
+            val internalUri = saveImageToInternalStorage(it)
+            if (internalUri != null) {
+                selectedImageUri = internalUri
+                coverImageView.setImageURI(internalUri)
+                coverImageView.visibility = View.VISIBLE
+            }
         }
     }
 
     // 2. LAUNCHER: Open Camera for Photo
     private val takePhotoLauncher = registerForActivityResult(ActivityResultContracts.TakePicturePreview()) { bitmap: Bitmap? ->
-        if (bitmap != null) {
-            coverImageView.setImageBitmap(bitmap)
-            coverImageView.visibility = View.VISIBLE
+        bitmap?.let {
+            val internalUri = saveBitmapToInternalStorage(it)
+            if (internalUri != null) {
+                selectedImageUri = internalUri
+                coverImageView.setImageBitmap(it)
+                coverImageView.visibility = View.VISIBLE
+            }
         }
     }
 
@@ -55,6 +64,34 @@ class AddTripFragment : Fragment() {
         if (result.resultCode == Activity.RESULT_OK) {
             val videoUri: Uri? = result.data?.data
             Toast.makeText(requireContext(), "Video captured successfully!", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    private fun saveImageToInternalStorage(uri: Uri): Uri? {
+        return try {
+            val inputStream = requireContext().contentResolver.openInputStream(uri) ?: return null
+            val file = File(requireContext().filesDir, "trip_${System.currentTimeMillis()}.jpg")
+            val outputStream = FileOutputStream(file)
+            inputStream.copyTo(outputStream)
+            inputStream.close()
+            outputStream.close()
+            Uri.fromFile(file)
+        } catch (e: Exception) {
+            e.printStackTrace()
+            null
+        }
+    }
+
+    private fun saveBitmapToInternalStorage(bitmap: Bitmap): Uri? {
+        return try {
+            val file = File(requireContext().filesDir, "trip_${System.currentTimeMillis()}.jpg")
+            val outputStream = FileOutputStream(file)
+            bitmap.compress(Bitmap.CompressFormat.JPEG, 90, outputStream)
+            outputStream.close()
+            Uri.fromFile(file)
+        } catch (e: Exception) {
+            e.printStackTrace()
+            null
         }
     }
 
@@ -138,9 +175,13 @@ class AddTripFragment : Fragment() {
                 publicSwitch.isChecked = tripToEdit.isPublic
 
                 if (tripToEdit.imageUri.isNotEmpty()) {
-                    selectedImageUri = Uri.parse(tripToEdit.imageUri)
-                    coverImageView.setImageURI(selectedImageUri)
-                    coverImageView.visibility = View.VISIBLE
+                    try {
+                        selectedImageUri = Uri.parse(tripToEdit.imageUri)
+                        coverImageView.setImageURI(selectedImageUri)
+                        coverImageView.visibility = View.VISIBLE
+                    } catch (e: SecurityException) {
+                        e.printStackTrace()
+                    }
                 }
 
                 saveButton.text = "Update Trip"

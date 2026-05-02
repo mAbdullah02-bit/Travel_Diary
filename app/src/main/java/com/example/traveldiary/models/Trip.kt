@@ -12,5 +12,9 @@ data class Trip(
     var rating: Double = 0.0,
     var id: Int = -1,
     var imageUri: String = "",
-    var isPublic: Boolean = false
+    var isPublic: Boolean = false,
+    var authorName: String = "Unknown User",
+    var likeCount: Int = 0,
+    var commentCount: Int = 0,
+    var isLikedByMe: Boolean = false
 ) : Serializable

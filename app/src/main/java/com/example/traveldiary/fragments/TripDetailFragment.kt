@@ -59,7 +59,11 @@ class TripDetailFragment : Fragment() {
             descView.text = currentTrip!!.description
 
             if (currentTrip!!.imageUri.isNotEmpty()) {
-                imageView.setImageURI(Uri.parse(currentTrip!!.imageUri))
+                try {
+                    imageView.setImageURI(Uri.parse(currentTrip!!.imageUri))
+                } catch (e: SecurityException) {
+                    imageView.setImageResource(currentTrip!!.imageResId)
+                }
             } else {
                 imageView.setImageResource(currentTrip!!.imageResId)
             }
@@ -132,7 +136,11 @@ class TripDetailFragment : Fragment() {
                 descView.text = freshDesc
 
                 if (freshImageUri.isNotEmpty()) {
-                    imageView.setImageURI(Uri.parse(freshImageUri))
+                    try {
+                        imageView.setImageURI(Uri.parse(freshImageUri))
+                    } catch (e: SecurityException) {
+                        e.printStackTrace()
+                    }
                 }
 
                 // Update our in-memory object so if they click "Edit" again, it sends the new data!

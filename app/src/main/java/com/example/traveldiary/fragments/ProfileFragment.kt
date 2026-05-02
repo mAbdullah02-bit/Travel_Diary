@@ -22,6 +22,8 @@ import com.example.traveldiary.R
 import com.google.android.material.card.MaterialCardView
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.firebase.auth.FirebaseAuth
+import java.io.File
+import java.io.FileOutputStream
 
 class ProfileFragment : Fragment() {
 
@@ -29,21 +31,45 @@ class ProfileFragment : Fragment() {
     private lateinit var profileInitialText: TextView
     private lateinit var profileNameText: TextView
     private lateinit var profileEmailText: TextView
+    
+    // Dashboard TextViews
+    private lateinit var tripsCountText: TextView
+    private lateinit var photosCountText: TextView
+    private lateinit var placesCountText: TextView
 
     private lateinit var dbHelper: DatabaseHelper
     private lateinit var auth: FirebaseAuth
 
     // LAUNCHER: Pick Image from Gallery
     private val pickImageLauncher = registerForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
-        if (uri != null) {
-            profileImageView.setImageURI(uri)
-            profileImageView.visibility = View.VISIBLE
-            profileInitialText.visibility = View.GONE
+        uri?.let {
+            val internalUri = saveImageToInternalStorage(it)
+            if (internalUri != null) {
+                profileImageView.setImageURI(internalUri)
+                profileImageView.visibility = View.VISIBLE
+                profileInitialText.visibility = View.GONE
 
-            // Save image choice to SQLite Database
-            val currentUserEmail = auth.currentUser?.email ?: "guest@example.com"
-            dbHelper.saveOrUpdateUser(currentUserEmail, profileNameText.text.toString(), "", uri.toString())
-            Toast.makeText(requireContext(), "Profile picture updated!", Toast.LENGTH_SHORT).show()
+                // Save image choice to SQLite Database
+                val currentUserEmail = auth.currentUser?.email ?: "guest@example.com"
+                dbHelper.saveOrUpdateUser(currentUserEmail, profileNameText.text.toString(), "", internalUri.toString())
+                Toast.makeText(requireContext(), "Profile picture updated!", Toast.LENGTH_SHORT).show()
+                updateDashboard() // Refresh dashboard if photo count changed
+            }
+        }
+    }
+
+    private fun saveImageToInternalStorage(uri: Uri): Uri? {
+        return try {
+            val inputStream = requireContext().contentResolver.openInputStream(uri) ?: return null
+            val file = File(requireContext().filesDir, "profile_${System.currentTimeMillis()}.jpg")
+            val outputStream = FileOutputStream(file)
+            inputStream.copyTo(outputStream)
+            inputStream.close()
+            outputStream.close()
+            Uri.fromFile(file)
+        } catch (e: Exception) {
+            e.printStackTrace()
+            null
         }
     }
 
@@ -63,6 +89,11 @@ class ProfileFragment : Fragment() {
         profileInitialText = view.findViewById(R.id.profile_initial_text)
         profileNameText = view.findViewById(R.id.profile_name_text)
         profileEmailText = view.findViewById<TextView>(R.id.profile_email_text)
+        
+        // Dashboard
+        tripsCountText = view.findViewById(R.id.profile_trips_count)
+        photosCountText = view.findViewById(R.id.profile_photos_count)
+        placesCountText = view.findViewById(R.id.profile_places_count)
 
         // Action Rows
         val btnEditProfile = view.findViewById<LinearLayout>(R.id.btn_edit_profile)
@@ -79,6 +110,7 @@ class ProfileFragment : Fragment() {
 
         // Load saved Name & Photo from SQLite Database
         loadUserProfileData(currentUserEmail)
+        updateDashboard()
 
         // --- CLICK LISTENERS ---
 
@@ -118,6 +150,26 @@ class ProfileFragment : Fragment() {
         return view
     }
 
+    override fun onResume() {
+        super.onResume()
+        updateDashboard()
+    }
+
+    private fun updateDashboard() {
+        val currentUserEmail = auth.currentUser?.email ?: "guest@example.com"
+        
+        // Fetch real data from SQLite
+        val tripCount = dbHelper.getTripCountForUser(currentUserEmail)
+        val photoCount = dbHelper.getPhotoCountForUser(currentUserEmail)
+        val placeCount = dbHelper.getPlaceCountForUser(currentUserEmail)
+        
+        tripsCountText.text = tripCount.toString()
+        photosCountText.text = photoCount.toString()
+        placesCountText.text = placeCount.toString()
+        
+        // TODO: Integrate with Firebase database in the future for cloud sync
+    }
+
     // --- DATABASE & FIREBASE FUNCTIONS ---
 
     private fun loadUserProfileData(email: String) {
@@ -132,9 +184,13 @@ class ProfileFragment : Fragment() {
             }
 
             if (savedPicUri.isNotEmpty()) {
-                profileImageView.setImageURI(Uri.parse(savedPicUri))
-                profileImageView.visibility = View.VISIBLE
-                profileInitialText.visibility = View.GONE
+                try {
+                    profileImageView.setImageURI(Uri.parse(savedPicUri))
+                    profileImageView.visibility = View.VISIBLE
+                    profileInitialText.visibility = View.GONE
+                } catch (e: SecurityException) {
+                    e.printStackTrace()
+                }
             }
             cursor.close()
         }

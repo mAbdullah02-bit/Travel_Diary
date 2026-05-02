@@ -67,7 +67,7 @@
                         android:id="@+id/explore_detail_avatar_text"
                         android:layout_width="match_parent"
                         android:layout_height="match_parent"
-                        android:text="SJ"
+                        android:text="?"
                         android:textColor="#FFFFFF"
                         android:textSize="16sp"
                         android:textStyle="bold"
@@ -83,7 +83,7 @@
                         android:id="@+id/explore_detail_user_name"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Sarah Johnson"
+                        android:text="Traveler"
                         android:textColor="#000000"
                         android:textSize="16sp"
                         android:textStyle="bold" />
@@ -91,7 +91,7 @@
                         android:id="@+id/explore_detail_date"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="February 15, 2026"
+                        android:text="Date"
                         android:textColor="@color/gray"
                         android:textSize="13sp" />
                 </LinearLayout>
@@ -109,7 +109,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginHorizontal="20dp"
                 android:layout_marginTop="8dp"
-                android:text="Backpacking Through Southeast Asia"
+                android:text="Trip Title"
                 android:textColor="#000000"
                 android:textSize="22sp"
                 android:textStyle="bold" />
@@ -120,7 +120,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginHorizontal="20dp"
                 android:layout_marginTop="4dp"
-                android:text="Thailand, Vietnam, Cambodia"
+                android:text="Location"
                 android:textColor="@color/blue"
                 android:textSize="16sp" />
 
@@ -130,7 +130,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginHorizontal="20dp"
                 android:layout_marginTop="16dp"
-                android:text="Three weeks of incredible temples, beaches, and street food..."
+                android:text="Description goes here..."
                 android:textColor="#424242"
                 android:textSize="15sp"
                 android:lineSpacingExtra="6dp" />
@@ -148,7 +148,7 @@
                     android:background="@color/blue"
                     android:paddingHorizontal="12dp"
                     android:paddingVertical="6dp"
-                    android:text="Grand Palace Bangkok"
+                    android:text="Journey"
                     android:textColor="@color/white"
                     android:textSize="12sp" />
 
@@ -159,7 +159,7 @@
                     android:background="@color/blue"
                     android:paddingHorizontal="12dp"
                     android:paddingVertical="6dp"
-                    android:text="Angkor Wat"
+                    android:text="Adventure"
                     android:textColor="@color/white"
                     android:textSize="12sp" />
 
@@ -185,16 +185,21 @@
                 android:layout_marginTop="20dp">
 
                 <ImageView
-                    android:layout_width="22dp"
-                    android:layout_height="22dp"
+                    android:id="@+id/explore_detail_like_icon"
+                    android:layout_width="28dp"
+                    android:layout_height="28dp"
                     android:src="@drawable/ic_heart"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:padding="2dp"
                     app:tint="#757575" />
                 <TextView
                     android:id="@+id/explore_detail_like_count"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginStart="6dp"
-                    android:text="234 Likes"
+                    android:layout_marginStart="8dp"
+                    android:text="0 Likes"
                     android:textColor="#757575"
                     android:textSize="14sp"
                     android:textStyle="bold"/>
@@ -210,7 +215,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginStart="6dp"
-                    android:text="18 Comments"
+                    android:text="0 Comments"
                     android:textColor="#757575"
                     android:textSize="14sp"
                     android:textStyle="bold"/>
@@ -251,7 +256,7 @@
         android:layout_marginTop="24dp"
         android:src="@drawable/ic_back"
         app:tint="@color/white"
-        android:background="@color/white"
+
         android:backgroundTint="#80000000"
         android:padding="8dp"
         app:layout_constraintStart_toStartOf="parent"
@@ -274,7 +279,7 @@
             android:layout_width="0dp"
             android:layout_height="48dp"
             android:layout_weight="1"
-            android:background="@color/white"
+            android:background="@android:color/transparent"
             android:hint="Add a comment..."
             android:paddingHorizontal="16dp"
             android:textSize="14sp" />

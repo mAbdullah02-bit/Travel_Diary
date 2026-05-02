@@ -7,6 +7,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.EditText
+import android.widget.TextView
 import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -20,6 +21,10 @@ class HomeFragment : Fragment() {
 
     private lateinit var adapter: TripAdapter
     private var homeTrips = mutableListOf<Trip>()
+    
+    private lateinit var dashtrips: TextView
+    private lateinit var dashpics: TextView
+    private lateinit var dashplaces: TextView
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -28,7 +33,11 @@ class HomeFragment : Fragment() {
         val view = inflater.inflate(R.layout.activity_home, container, false)
         val searchBar = view.findViewById<EditText>(R.id.search_bar)
         val recyclerView = view.findViewById<RecyclerView>(R.id.home_recycler_view)
-
+        
+        dashtrips = view.findViewById(R.id.home_tripsdash)
+        dashpics = view.findViewById(R.id.home_picsdash)
+        dashplaces = view.findViewById(R.id.home_placesdash)
+        
         adapter = TripAdapter(homeTrips) { clickedTrip ->
             val detailFragment = TripDetailFragment()
             val bundle = Bundle()
@@ -67,7 +76,25 @@ class HomeFragment : Fragment() {
         super.onResume()
         injectDummyData()  // seeding
         loadTripsFromDatabase()
+        updateDashboard()
     }
+
+    private fun updateDashboard() {
+        val dbHelper = DatabaseHelper(requireContext())
+        val currentUserEmail = FirebaseAuth.getInstance().currentUser?.email ?: "guest@example.com"
+        
+        // Fetching real data from SQLite
+        val tripCount = dbHelper.getTripCountForUser(currentUserEmail)
+        val photoCount = dbHelper.getPhotoCountForUser(currentUserEmail)
+        val placeCount = dbHelper.getPlaceCountForUser(currentUserEmail)
+        
+        dashtrips.text = tripCount.toString()
+        dashpics.text = photoCount.toString()
+        dashplaces.text = placeCount.toString()
+        
+        // TODO: Integrate with Firebase database in the future for cloud sync
+    }
+
     private fun loadTripsFromDatabase() {
         val dbHelper = DatabaseHelper(requireContext())
         val currentUserEmail = FirebaseAuth.getInstance().currentUser?.email ?: "guest@example.com"
@@ -93,7 +120,7 @@ class HomeFragment : Fragment() {
             cursor.close()
         }
 
-        // --- CRITICAL FIX ---
+
         // Update the master list AND tell the adapter to refresh
         homeTrips.clear()
         homeTrips.addAll(freshTrips)

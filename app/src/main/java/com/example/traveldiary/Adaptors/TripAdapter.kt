@@ -34,7 +34,11 @@ class TripAdapter(private val tripList: MutableList<Trip>,private val onTripClic
         // --- FIX 1: Handle Database Images ---
         if (currentTrip.imageUri.isNotEmpty()) {
             // If there's a URI from the gallery/camera, use it
-            holder.tripImage.setImageURI(android.net.Uri.parse(currentTrip.imageUri))
+            try {
+                holder.tripImage.setImageURI(android.net.Uri.parse(currentTrip.imageUri))
+            } catch (e: SecurityException) {
+                holder.tripImage.setImageResource(currentTrip.imageResId)
+            }
         } else {
             // Otherwise, use the default icon
             holder.tripImage.setImageResource(currentTrip.imageResId)

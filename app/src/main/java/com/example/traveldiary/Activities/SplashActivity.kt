@@ -18,33 +18,36 @@ class SplashActivity : AppCompatActivity() {
         // 1. Initialize Firebase Auth
         auth = FirebaseAuth.getInstance()
 
-        // 2. The Auto-Login Check!
-        // If a user is already logged in, skip this screen entirely.
+        // 2. The Auto-Login Check (Requirement F1)
+        // This ensures user sessions persist across app restarts.
         if (auth.currentUser != null) {
-            val intent = Intent(this, MainActivity::class.java)
-            intent.putExtra("User Email", auth.currentUser?.email)
-            intent.putExtra("Is Guest", false)
-            startActivity(intent)
-            finish() // Destroys the splash screen
-            return   // Stops the rest of the code in this function from running
+            navigateToMain(auth.currentUser?.email, false)
+            return
         }
 
-        // 3. If no user is logged in, load the buttons as normal
+        // 3. Setup UI for new users or guests
         val btnGetStarted = findViewById<Button>(R.id.btn_splash)
         val btnGuest = findViewById<Button>(R.id.btn_guest)
 
         btnGetStarted.setOnClickListener {
-            val intent = Intent(this, LoginActivity::class.java)
-            startActivity(intent)
+            // Send to LoginActivity to handle Email/Password (F1 Requirement)
+            startActivity(Intent(this, LoginActivity::class.java))
             finish()
         }
 
         btnGuest.setOnClickListener {
-            val intent = Intent(this, MainActivity::class.java)
-            intent.putExtra("USER_EMAIL", "Guest User")
-            intent.putExtra("IS_GUEST", true)
-            startActivity(intent)
-            finish()
+            // Standard Guest login flow
+            navigateToMain("Guest User", true)
         }
+    }
+
+    //function to centralize navigation to MainActivity.
+    private fun navigateToMain(email: String?, isGuest: Boolean) {
+        val intent = Intent(this, MainActivity::class.java)
+        // Use consistent keys to avoid "null" errors in HomeFragment
+        intent.putExtra("USER_EMAIL", email ?: "unknown")
+        intent.putExtra("IS_GUEST", isGuest)
+        startActivity(intent)
+        finish() // Crucial: Removes Splash from the Backstack
     }
 }

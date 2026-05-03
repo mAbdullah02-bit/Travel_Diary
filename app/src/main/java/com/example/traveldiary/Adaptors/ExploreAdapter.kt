@@ -14,13 +14,10 @@ import com.example.traveldiary.models.Trip
 import com.google.firebase.auth.FirebaseAuth
 
 class ExploreAdapter(
-    private var tripList: List<Trip>,
     private val onTripClick: (Trip) -> Unit
 ) : RecyclerView.Adapter<ExploreAdapter.ExploreViewHolder>() {
 
-    init {
-        setHasStableIds(true)
-    }
+    private var tripList: List<Trip> = emptyList()
 
     class ExploreViewHolder(view: View) : RecyclerView.ViewHolder(view) {
         val title: TextView = view.findViewById(R.id.explore_card_title)
@@ -34,8 +31,6 @@ class ExploreAdapter(
         val commentCount: TextView = view.findViewById(R.id.explore_card_comment_count)
         val avatarText: TextView = view.findViewById(R.id.explore_card_avatar_text)
     }
-
-    override fun getItemId(position: Int): Long = tripList[position].id.toLong()
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ExploreViewHolder {
         val view = LayoutInflater.from(parent.context)
@@ -55,14 +50,16 @@ class ExploreAdapter(
         holder.authorName.text = currentTrip.authorName
         holder.date.text = currentTrip.date
         
-        // --- TODO: FUTURE FIREBASE MIGRATION ---
-        // Fetch like/comment counts from Firebase Firestore collections instead of SQLite
-        holder.likeCount.text = dbHelper.getLikeCount(currentTrip.id).toString()
-        holder.commentCount.text = dbHelper.getCommentCount(currentTrip.id).toString()
+        // --- Social Data: Always fetch fresh state to prevent "double like" state issues ---
+        val actualLikeCount = dbHelper.getLikeCount(currentTrip.id)
+        val actualIsLiked = dbHelper.isTripLikedByUser(currentTrip.id, currentUserEmail)
+        val actualCommentCount = dbHelper.getCommentCount(currentTrip.id)
+
+        holder.likeCount.text = actualLikeCount.toString()
+        holder.commentCount.text = actualCommentCount.toString()
         
-        val isLiked = dbHelper.isTripLikedByUser(currentTrip.id, currentUserEmail)
-        holder.likeIcon.setImageResource(if (isLiked) R.drawable.ic_heart_filled else R.drawable.ic_heart)
-        holder.likeIcon.setColorFilter(if (isLiked) context.getColor(android.R.color.holo_red_dark) else context.getColor(R.color.gray))
+        holder.likeIcon.setImageResource(if (actualIsLiked) R.drawable.ic_heart_filled else R.drawable.ic_heart)
+        holder.likeIcon.setColorFilter(if (actualIsLiked) context.getColor(android.R.color.holo_red_dark) else context.getColor(R.color.gray))
 
         holder.avatarText.text = if (currentTrip.authorName.isNotEmpty()) currentTrip.authorName.take(1).uppercase() else "?"
 
@@ -79,10 +76,21 @@ class ExploreAdapter(
         holder.itemView.setOnClickListener { onTripClick(currentTrip) }
 
         holder.likeIcon.setOnClickListener {
-            // --- TODO: FUTURE FIREBASE MIGRATION ---
-            // Toggle like status in Firebase Firestore 'likes' collection
-            dbHelper.toggleLike(currentTrip.id, currentUserEmail)
-            notifyItemChanged(holder.bindingAdapterPosition)
+            val currentPos = holder.bindingAdapterPosition
+            if (currentPos != RecyclerView.NO_POSITION) {
+                val trip = tripList[currentPos]
+                
+                // Toggle in Database
+                dbHelper.toggleLike(trip.id, currentUserEmail)
+                
+                // --- FIX: Sync internal model so notifyItemChanged has correct metadata ---
+                trip.isLikedByMe = dbHelper.isTripLikedByUser(trip.id, currentUserEmail)
+                trip.likeCount = dbHelper.getLikeCount(trip.id)
+                
+                notifyItemChanged(currentPos)
+                
+                // TODO: Sync toggle to Firebase Firestore in the future
+            }
         }
     }
 
@@ -91,10 +99,19 @@ class ExploreAdapter(
             override fun getOldListSize(): Int = tripList.size
             override fun getNewListSize(): Int = newList.size
             override fun areItemsTheSame(oldPos: Int, newPos: Int): Boolean = tripList[oldPos].id == newList[newPos].id
-            override fun areContentsTheSame(oldPos: Int, newPos: Int): Boolean = tripList[oldPos] == newList[newPos]
+            override fun areContentsTheSame(oldPos: Int, newPos: Int): Boolean {
+                val old = tripList[oldPos]
+                val next = newList[newPos]
+                // Check all social fields that can change
+                return old.likeCount == next.likeCount && 
+                       old.isLikedByMe == next.isLikedByMe &&
+                       old.commentCount == next.commentCount &&
+                       old.title == next.title
+            }
         }
         val diffResult = DiffUtil.calculateDiff(diffCallback)
-        tripList = newList
+        // Store a NEW list instance to ensure calculateDiff works next time
+        tripList = newList.map { it.copy() }
         diffResult.dispatchUpdatesTo(this)
     }
 

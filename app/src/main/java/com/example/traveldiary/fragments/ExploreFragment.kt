@@ -3,12 +3,15 @@ package com.example.traveldiary.fragments
 import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.EditText
 import android.widget.TextView
+import android.widget.Toast
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.traveldiary.Adaptors.ExploreAdapter
@@ -16,6 +19,11 @@ import com.example.traveldiary.DatabaseHelper
 import com.example.traveldiary.R
 import com.example.traveldiary.models.Trip
 import com.google.firebase.auth.FirebaseAuth
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import org.json.JSONArray
+import java.net.URL
 import java.util.Locale
 
 class ExploreFragment : Fragment() {
@@ -41,7 +49,8 @@ class ExploreFragment : Fragment() {
         totalPhotosText = view.findViewById(R.id.explore_photos_count)
         totalPlacesText = view.findViewById(R.id.explore_places_count)
 
-        adapter = ExploreAdapter(mutableListOf()) { clickedTrip ->
+        // Fixed: Removed incorrect mutableListOf() argument and specified Trip type
+        adapter = ExploreAdapter { clickedTrip: Trip ->
             val detailFragment = ExploreDetailFragment()
             val bundle = Bundle()
             bundle.putSerializable("TRIP_DATA", clickedTrip)
@@ -66,6 +75,43 @@ class ExploreFragment : Fragment() {
 
         return view
     }
+
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+        // Fetch fresh inspiration from a REST API
+//        fetchDailyInspiration()
+    }
+
+//    private fun fetchDailyInspiration() {
+//        viewLifecycleOwner.lifecycleScope.launch {
+//            try {
+//                val quoteText = withContext(Dispatchers.IO) {
+//                    Log.d("ExploreFragment", "Fetching inspiration from API...")
+//                    // ZenQuotes API returns a JSON array: [{"q":"quote", "a":"author", ...}]
+//                    val response = URL("https://zenquotes.io/api/quotes").readText()
+//
+//                    // Properly parse the JSON array response
+//                    val jsonArray = JSONArray(response)
+//                    if (jsonArray.length() > 0) {
+//                        val firstItem = jsonArray.getJSONObject(0)
+//                        val quote = firstItem.getString("q")
+//                        val author = firstItem.getString("a")
+//                        "\"$quote\" — $author"
+//                    } else {
+//                        "Discover travel stories from around the world"
+//                    }
+//                }
+//                Log.d("ExploreFragment", "Quote received: $quoteText")
+//                // Update the subtitle with the properly parsed quote
+//                view?.findViewById<TextView>(R.id.explore_subtitle)?.text = quoteText
+//                context?.let {
+//                    Toast.makeText(it, "New Inspiration Loaded!", Toast.LENGTH_SHORT).show()
+//                }
+//            } catch (e: Exception) {
+//                Log.e("ExploreFragment", "Error fetching inspiration", e)
+//            }
+//        }
+//    }
 
     override fun onResume() {
         super.onResume()

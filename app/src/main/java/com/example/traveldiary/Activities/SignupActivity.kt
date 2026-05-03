@@ -2,8 +2,10 @@ package com.example.traveldiary.Activities
 
 import android.content.Intent
 import android.os.Bundle
+import android.util.Log
 import android.widget.Button
 import android.widget.CheckBox
+import android.widget.EditText
 import android.widget.ImageView
 import android.widget.TextView
 import android.widget.Toast
@@ -11,6 +13,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import com.example.traveldiary.DatabaseHelper
 import com.example.traveldiary.R
+import com.example.traveldiary.utils.AuthManager
 import com.facebook.AccessToken
 import com.facebook.CallbackManager
 import com.facebook.FacebookCallback
@@ -24,13 +27,15 @@ import com.google.android.gms.common.api.ApiException
 import com.google.firebase.auth.FacebookAuthProvider
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.GoogleAuthProvider
+import com.google.firebase.auth.UserProfileChangeRequest
 
 class SignupActivity : AppCompatActivity() {
 
     private lateinit var auth: FirebaseAuth
+    private lateinit var authManager: AuthManager
     private lateinit var googleSignInClient: GoogleSignInClient
     private lateinit var callbackManager: CallbackManager
-    private lateinit var dbHelper: DatabaseHelper // NEW: Local DB
+    private lateinit var dbHelper: DatabaseHelper
 
     private val googleSignInLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
         if (result.resultCode == RESULT_OK) {
@@ -49,6 +54,7 @@ class SignupActivity : AppCompatActivity() {
         setContentView(R.layout.activity_signup)
 
         auth = FirebaseAuth.getInstance()
+        authManager = AuthManager()
         dbHelper = DatabaseHelper(this)
 
         val btnSignup = findViewById<Button>(R.id.signup_BTN)
@@ -56,11 +62,11 @@ class SignupActivity : AppCompatActivity() {
         val btnFB = findViewById<Button>(R.id.signup_fbBTN)
         val btnGoogle = findViewById<Button>(R.id.signup_goBTN)
         val btnlogin = findViewById<TextView>(R.id.backtologin)
-        val sEmail = findViewById<TextView>(R.id.signup_editmail)
-        val sName = findViewById<TextView>(R.id.signup_name)
-        val sPassC = findViewById<TextView>(R.id.signup_passC)
+        val sEmail = findViewById<EditText>(R.id.signup_editmail)
+        val sName = findViewById<EditText>(R.id.signup_editname)
+        val sPass = findViewById<EditText>(R.id.signup_editpass)
+        val sPassC = findViewById<EditText>(R.id.signup_editpassC)
         val back = findViewById<ImageView>(R.id.signup_back)
-        val sPass = findViewById<TextView>(R.id.signup_pass)
 
         val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
             .requestIdToken(getString(R.string.default_web_client_id))
@@ -111,15 +117,30 @@ class SignupActivity : AppCompatActivity() {
                 return@setOnClickListener
             }
 
-            auth.createUserWithEmailAndPassword(usrEmail, usrPass)
-                .addOnCompleteListener(this) { task ->
-                    if (task.isSuccessful) {
-                        Toast.makeText(this, "Account Created!", Toast.LENGTH_SHORT).show()
-                        syncToLocalDatabaseAndGo(usrEmail, usrName)
-                    } else {
-                        Toast.makeText(this, "Error: ${task.exception?.message}", Toast.LENGTH_LONG).show()
+            authManager.registerUser(usrEmail, usrPass) { success, error ->
+                if (success) {
+                    val user = auth.currentUser
+                    val profileUpdates = UserProfileChangeRequest.Builder()
+                        .setDisplayName(usrName)
+                        .build()
+
+                    user?.updateProfile(profileUpdates)?.addOnCompleteListener { _ ->
+                        // Save profile to Cloud Firestore (Firebase)
+                        authManager.saveUserToFirestore(usrEmail, usrName, "New Traveler", "") { fsSuccess, fsError ->
+                            if (fsSuccess) {
+                                Toast.makeText(this, "Account Created & Cloud Synced!", Toast.LENGTH_SHORT).show()
+                            } else {
+                                Toast.makeText(this, "Account Created (Offline Mode)", Toast.LENGTH_SHORT).show()
+                                Log.e("SignupActivity", "Firestore sync failed: $fsError")
+                            }
+                            // Always sync to local DB for offline support and navigate
+                            syncToLocalDatabaseAndGo(usrEmail, usrName)
+                        }
                     }
+                } else {
+                    Toast.makeText(this, "Error: $error", Toast.LENGTH_LONG).show()
                 }
+            }
         }
     }
 
@@ -131,7 +152,16 @@ class SignupActivity : AppCompatActivity() {
     private fun firebaseAuthWithGoogle(idToken: String) {
         val credential = GoogleAuthProvider.getCredential(idToken, null)
         auth.signInWithCredential(credential).addOnCompleteListener(this) { task ->
-            if (task.isSuccessful) syncToLocalDatabaseAndGo(auth.currentUser?.email ?: "Google User", auth.currentUser?.displayName ?: "Google User")
+            if (task.isSuccessful) {
+                val user = auth.currentUser
+                val email = user?.email ?: ""
+                val name = user?.displayName ?: "Traveler"
+                val photo = user?.photoUrl?.toString() ?: ""
+                
+                authManager.saveUserToFirestore(email, name, "Ready to explore!", photo) { _, _ ->
+                    syncToLocalDatabaseAndGo(email, name)
+                }
+            }
             else Toast.makeText(this, "Firebase Google Auth Failed", Toast.LENGTH_SHORT).show()
         }
     }
@@ -139,12 +169,20 @@ class SignupActivity : AppCompatActivity() {
     private fun handleFacebookAccessToken(token: AccessToken) {
         val credential = FacebookAuthProvider.getCredential(token.token)
         auth.signInWithCredential(credential).addOnCompleteListener(this) { task ->
-            if (task.isSuccessful) syncToLocalDatabaseAndGo(auth.currentUser?.email ?: "Facebook User", auth.currentUser?.displayName ?: "Facebook User")
+            if (task.isSuccessful) {
+                val user = auth.currentUser
+                val email = user?.email ?: ""
+                val name = user?.displayName ?: "Traveler"
+                val photo = user?.photoUrl?.toString() ?: ""
+
+                authManager.saveUserToFirestore(email, name, "Ready to explore!", photo) { _, _ ->
+                    syncToLocalDatabaseAndGo(email, name)
+                }
+            }
             else Toast.makeText(this, "Firebase FB Auth Failed", Toast.LENGTH_SHORT).show()
         }
     }
 
-    // NEW: Syncs User to SQLite
     private fun syncToLocalDatabaseAndGo(email: String, name: String) {
         val photoUrl = auth.currentUser?.photoUrl?.toString() ?: ""
         dbHelper.saveOrUpdateUser(email, name, "New Traveler", photoUrl)

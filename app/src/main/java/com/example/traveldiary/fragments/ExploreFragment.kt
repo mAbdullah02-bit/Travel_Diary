@@ -49,10 +49,20 @@ class ExploreFragment : Fragment() {
                     .commit()
             },
             onLikeClick = { clickedTrip: Trip ->
+                // 1. Instantly save the like state to memory so Firebase delays don't overwrite the red heart!
+                val mutableLikes = userLikedTripIds.toMutableSet()
+                if (clickedTrip.isLikedByMe) {
+                    mutableLikes.add(clickedTrip.tripId)
+                } else {
+                    mutableLikes.remove(clickedTrip.tripId)
+                }
+                userLikedTripIds = mutableLikes
+
+                // 2. Tell Firebase exactly what state we want using setLikeState
                 if (clickedTrip.tripId.isNotEmpty()) {
                     lifecycleScope.launch(Dispatchers.IO) {
                         try {
-                            firestoreHelper.toggleLike(clickedTrip.tripId, currentUserEmail)
+                            firestoreHelper.setLikeState(clickedTrip.tripId, currentUserEmail, clickedTrip.isLikedByMe)
                         } catch (e: Exception) {
                             // Ignore errors quietly on the feed
                         }
@@ -110,6 +120,7 @@ class ExploreFragment : Fragment() {
         // 1. Listen for Public Trips
         firestoreHelper.getPublicTripsListener { trips ->
             lifecycleScope.launch(Dispatchers.Main) {
+                android.util.Log.e("DEBUG_TRIPS", "Firebase pulled down exactly: ${trips.size} trips!")
                 fullTripList.clear()
                 fullTripList.addAll(trips)
                 applyLikesAndFilter()

@@ -24,6 +24,8 @@ import com.example.traveldiary.utils.FirestoreHelper
 import com.google.android.material.card.MaterialCardView
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.ListenerRegistration
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import java.io.File
 import java.io.FileOutputStream
@@ -34,7 +36,7 @@ class ProfileFragment : Fragment() {
     private lateinit var profileInitialText: TextView
     private lateinit var profileNameText: TextView
     private lateinit var profileEmailText: TextView
-    
+
     // Dashboard TextViews
     private lateinit var tripsCountText: TextView
     private lateinit var photosCountText: TextView
@@ -43,6 +45,9 @@ class ProfileFragment : Fragment() {
     private lateinit var dbHelper: DatabaseHelper
     private lateinit var auth: FirebaseAuth
     private val firestoreHelper = FirestoreHelper()
+
+    // Prevent memory leaks
+    private var dashboardListener: ListenerRegistration? = null
 
     // LAUNCHER: Pick Image from Gallery
     private val pickImageLauncher = registerForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
@@ -57,7 +62,6 @@ class ProfileFragment : Fragment() {
                 val currentUserEmail = auth.currentUser?.email ?: "guest@example.com"
                 dbHelper.saveOrUpdateUser(currentUserEmail, profileNameText.text.toString(), "", internalUri.toString())
                 Toast.makeText(requireContext(), "Profile picture updated!", Toast.LENGTH_SHORT).show()
-                updateDashboard() // Refresh dashboard if photo count changed
             }
         }
     }
@@ -93,7 +97,7 @@ class ProfileFragment : Fragment() {
         profileInitialText = view.findViewById(R.id.profile_initial_text)
         profileNameText = view.findViewById(R.id.profile_name_text)
         profileEmailText = view.findViewById<TextView>(R.id.profile_email_text)
-        
+
         // Dashboard
         tripsCountText = view.findViewById(R.id.profile_trips_count)
         photosCountText = view.findViewById(R.id.profile_photos_count)
@@ -114,7 +118,9 @@ class ProfileFragment : Fragment() {
 
         // Load saved Name & Photo from SQLite Database
         loadUserProfileData(currentUserEmail)
-        updateDashboard()
+
+        // Fetch Live Dashboard Data from Firebase
+        setupFirestoreDashboardListener(currentUserEmail)
 
         // --- CLICK LISTENERS ---
 
@@ -153,21 +159,29 @@ class ProfileFragment : Fragment() {
         return view
     }
 
-    override fun onResume() {
-        super.onResume()
-        updateDashboard()
-    }
+    private fun setupFirestoreDashboardListener(email: String) {
+        // Listen to all trips created by this user in real-time
+        dashboardListener = firestoreHelper.getUserTripsListener(email) { trips ->
+            lifecycleScope.launch(Dispatchers.Main) {
 
-    private fun updateDashboard() {
-        val currentUserEmail = auth.currentUser?.email ?: "guest@example.com"
-        
-        val tripCount = dbHelper.getTripCountForUser(currentUserEmail)
-        val photoCount = dbHelper.getPhotoCountForUser(currentUserEmail)
-        val placeCount = dbHelper.getPlaceCountForUser(currentUserEmail)
-        
-        tripsCountText.text = tripCount.toString()
-        photosCountText.text = photoCount.toString()
-        placesCountText.text = placeCount.toString()
+                // 1. Total Trips
+                val tripCount = trips.size
+
+                // 2. Photos (Count how many trips have an image attached)
+                val photoCount = trips.count { it.imageUri.isNotEmpty() || it.imageUrl.isNotEmpty() }
+
+                // 3. Unique Places (Filter out empty locations, put in a Set to remove duplicates)
+                val uniquePlaces = trips.map { it.location.trim() }
+                    .filter { it.isNotEmpty() }
+                    .toSet()
+                    .size
+
+                // Update UI instantly
+                tripsCountText.text = tripCount.toString()
+                photosCountText.text = photoCount.toString()
+                placesCountText.text = uniquePlaces.toString()
+            }
+        }
     }
 
     private fun loadUserProfileData(email: String) {
@@ -313,5 +327,11 @@ class ProfileFragment : Fragment() {
             data = Uri.fromParts("package", requireActivity().packageName, null)
         }
         startActivity(intent)
+    }
+
+    override fun onDestroyView() {
+        super.onDestroyView()
+        // Kill the Firebase listener when we leave the profile page to save memory!
+        dashboardListener?.remove()
     }
 }

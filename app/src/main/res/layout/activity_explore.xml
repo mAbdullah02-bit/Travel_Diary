@@ -3,118 +3,95 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#FFFFFF"
-    android:clipChildren="false">
+    android:background="#FFFFFF">
 
-    <ScrollView
-        android:id="@+id/main_scroll"
+    <!-- Top Blue Background (Elevated to stay on top) -->
+    <View
+        android:id="@+id/explore_background"
+        android:layout_width="match_parent"
+        android:layout_height="130dp"
+        android:background="@color/blue"
+        android:elevation="10dp"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <!-- Page Title (Elevated) -->
+    <TextView
+        android:id="@+id/explore_title"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="20dp"
+        android:text="Explore Journals"
+        android:textColor="@color/white"
+        android:textSize="30sp"
+        android:textStyle="bold"
+        android:elevation="10dp"
+        app:layout_constraintBottom_toBottomOf="@+id/explore_background"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintVertical_bias="0.30" />
+
+    <!-- Page Subtitle (Elevated) -->
+    <TextView
+        android:id="@+id/explore_subtitle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="20dp"
+        android:text="Discover travel stories from around the world"
+        android:textColor="@color/white"
+        android:textSize="18sp"
+        android:elevation="10dp"
+        app:layout_constraintBottom_toTopOf="@+id/search_bar"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/explore_title"
+        app:layout_constraintVertical_bias="0" />
+
+    <!-- Search Bar (Elevated) -->
+    <EditText
+        android:id="@+id/search_bar"
+        android:layout_width="match_parent"
+        android:layout_height="56dp"
+        android:layout_marginHorizontal="24dp"
+        android:background="@color/white"
+        android:drawableStart="@drawable/ic_search"
+        android:drawableEnd="@drawable/ic_globe"
+        android:drawablePadding="5dp"
+        android:drawableTint="@color/gray"
+        android:hint="Search for trips"
+        android:inputType="text"
+        android:padding="5dp"
+        android:elevation="12dp"
+        app:layout_constraintBottom_toBottomOf="@+id/explore_background"
+        app:layout_constraintTop_toBottomOf="@id/explore_background" />
+
+    <!-- List Header Container -->
+    <RelativeLayout
+        android:id="@+id/list_header_container"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginHorizontal="24dp"
+        android:layout_marginTop="16dp"
+        android:layout_marginBottom="10dp"
+        app:layout_constraintTop_toBottomOf="@+id/search_bar">
+
+        <TextView
+            android:id="@+id/body_title"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_centerInParent="true"
+            android:text="Explore Public Journals"
+            android:textColor="@color/black"
+            android:textSize="18sp"
+            android:textStyle="bold" />
+    </RelativeLayout>
+
+    <!-- The Scrollable Feed -->
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/explore_recycler_view"
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:clipToPadding="false"
-        android:fillViewport="true"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintBottom_toBottomOf="parent">
-
-        <androidx.constraintlayout.widget.ConstraintLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:paddingBottom="24dp">
-
-            <View
-                android:id="@+id/explore_background"
-                android:layout_width="match_parent"
-                android:layout_height="130dp"
-                android:background="@color/blue"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toTopOf="parent" />
-
-            <TextView
-                android:id="@+id/explore_title"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="20dp"
-                android:text="Explore Journals"
-                android:textColor="@color/white"
-                android:textSize="30sp"
-                android:textStyle="bold"
-                app:layout_constraintBottom_toBottomOf="@+id/explore_background"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toTopOf="parent"
-                app:layout_constraintVertical_bias="0.30" />
-
-            <TextView
-                android:id="@+id/explore_subtitle"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="20dp"
-                android:text="Discover travel stories from around the world"
-                android:textColor="@color/white"
-                android:textSize="18sp"
-                app:layout_constraintBottom_toTopOf="@+id/search_bar"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toBottomOf="@+id/explore_title"
-                app:layout_constraintVertical_bias="0" />
-
-            <EditText
-                android:id="@+id/search_bar"
-                android:layout_width="match_parent"
-                android:layout_height="56dp"
-                android:layout_marginHorizontal="24dp"
-                android:background="@color/white"
-                android:drawableStart="@drawable/ic_search"
-                android:drawableEnd="@drawable/ic_globe"
-                android:drawablePadding="5dp"
-                android:drawableTint="@color/gray"
-                android:hint="Search for trips"
-                android:inputType="text"
-                android:padding="5dp"
-                app:layout_constraintBottom_toBottomOf="@+id/explore_background"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toBottomOf="@id/explore_background" />
-
-            <!-- Fix 3: Removed Jetpack Compose dashboard to clean up the UI -->
-
-            <LinearLayout
-                android:id="@+id/explore_body"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:paddingTop="10dp"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintHorizontal_bias="0.0"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toBottomOf="@+id/search_bar">
-
-                <RelativeLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginHorizontal="24dp"
-                    android:layout_marginTop="10dp"
-                    android:layout_marginBottom="10dp"
-                    android:gravity="center">
-
-                    <TextView
-                        android:id="@+id/body_title"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_alignParentStart="true"
-                        android:text="Explore Public Journals "
-                        android:textColor="@color/black"
-                        android:textSize="18sp"
-                        android:textStyle="bold" />
-
-                </RelativeLayout>
-
-                <androidx.recyclerview.widget.RecyclerView
-                    android:id="@+id/explore_recycler_view"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:nestedScrollingEnabled="false" />
-            </LinearLayout>
-
-        </androidx.constraintlayout.widget.ConstraintLayout>
-    </ScrollView>
+        android:paddingBottom="24dp"
+        app:layout_constraintTop_toBottomOf="@+id/list_header_container"
+        app:layout_constraintBottom_toBottomOf="parent" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

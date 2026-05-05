@@ -105,7 +105,7 @@ class ExploreDetailFragment : Fragment() {
 
                     lifecycleScope.launch(Dispatchers.IO) {
                         try {
-                            firestoreHelper.toggleLike(trip.tripId, currentUserEmail)
+                            firestoreHelper.setLikeState(trip.tripId, currentUserEmail,isLikedLocal)
                         } catch (e: Exception) {
                             withContext(Dispatchers.Main) {
                                 // Revert on failure

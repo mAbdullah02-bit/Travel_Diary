@@ -1,12 +1,11 @@
 package com.example.traveldiary.utils
 
 import com.example.traveldiary.models.Comment
-import com.example.traveldiary.models.Like
 import com.example.traveldiary.models.Trip
 import com.example.traveldiary.models.User
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
-import com.google.firebase.firestore.Query
+import com.google.firebase.firestore.ListenerRegistration
 import com.google.firebase.firestore.SetOptions
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.tasks.await
@@ -54,33 +53,42 @@ class FirestoreHelper {
 
     fun getPublicTripsListener(onUpdate: (List<Trip>) -> Unit) {
         db.collection("trips")
-            .whereEqualTo("public", true)
-            .orderBy("date", Query.Direction.DESCENDING)
+            .whereEqualTo("public", true) // THE FIX: Correct Kotlin field name
             .addSnapshotListener { snapshot, e ->
-                if (e != null) return@addSnapshotListener
+                if (e != null) {
+                    android.util.Log.e("FirestoreHelper", "Public Trips Error", e)
+                    return@addSnapshotListener
+                }
                 val trips = snapshot?.toObjects(Trip::class.java) ?: emptyList()
-                onUpdate(trips)
+
+                // THE FIX: Sort in Kotlin to bypass the Firebase Index Crash!
+                val sortedTrips = trips.sortedByDescending { it.date }
+                onUpdate(sortedTrips)
             }
     }
 
-    fun getUserTripsListener(email: String, onUpdate: (List<Trip>) -> Unit) {
-        db.collection("trips")
+    fun getUserTripsListener(email: String, onUpdate: (List<Trip>) -> Unit): ListenerRegistration {
+        return db.collection("trips")
             .whereEqualTo("userEmail", email)
-            .orderBy("date", Query.Direction.DESCENDING)
             .addSnapshotListener { snapshot, e ->
-                if (e != null) return@addSnapshotListener
+                if (e != null) {
+                    android.util.Log.e("FirestoreHelper", "User Trips Error", e)
+                    return@addSnapshotListener
+                }
                 val trips = snapshot?.toObjects(Trip::class.java) ?: emptyList()
-                onUpdate(trips)
+
+                // THE FIX: Sort in Kotlin to bypass the Firebase Index Crash!
+                val sortedTrips = trips.sortedByDescending { it.date }
+                onUpdate(sortedTrips)
             }
     }
 
     // --- Likes ---
-    suspend fun toggleLike(tripId: String, userEmail: String) = withContext(Dispatchers.IO) {
+    suspend fun setLikeState(tripId: String, userEmail: String, isLiking: Boolean) = withContext(Dispatchers.IO) {
         val likeId = "${tripId}_${userEmail}"
         val likeRef = db.collection("likes").document(likeId)
         val tripRef = db.collection("trips").document(tripId)
 
-        // THE FIX: Exact math, no more FieldValue.increment bugs!
         db.runTransaction { transaction ->
             val likeSnapshot = transaction.get(likeRef)
             val tripSnapshot = transaction.get(tripRef)
@@ -90,17 +98,15 @@ class FirestoreHelper {
                 currentCount = tripSnapshot.getLong("likeCount") ?: 0L
             }
 
-            if (likeSnapshot.exists()) {
-                // UNLIKE: Delete like, subtract 1, lock at 0 minimum
-                transaction.delete(likeRef)
-                currentCount -= 1
-                if (currentCount < 0) currentCount = 0
-                transaction.update(tripRef, "likeCount", currentCount)
-            } else {
-                // LIKE: Add like, add 1
+            if (isLiking && !likeSnapshot.exists()) {
                 val like = mapOf("likeId" to likeId, "userEmail" to userEmail, "tripId" to tripId)
                 transaction.set(likeRef, like)
                 currentCount += 1
+                transaction.update(tripRef, "likeCount", currentCount)
+            } else if (!isLiking && likeSnapshot.exists()) {
+                transaction.delete(likeRef)
+                currentCount -= 1
+                if (currentCount < 0) currentCount = 0
                 transaction.update(tripRef, "likeCount", currentCount)
             }
         }.await()

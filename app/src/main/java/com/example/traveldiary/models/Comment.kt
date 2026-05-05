@@ -1,10 +1,13 @@
 package com.example.traveldiary.models
 
+import java.io.Serializable
+
 data class Comment(
-    val id: Int,
-    val tripId: Int,
-    val userEmail: String,
-    val userName: String,
-    val text: String,
-    val date: String
-)
+    val id: Int = 0,
+    val commentId: String = "",
+    val tripId: String = "",
+    val userEmail: String = "",
+    val userName: String = "Anonymous",
+    val text: String = "",
+    val date: String = System.currentTimeMillis().toString()
+) : Serializable

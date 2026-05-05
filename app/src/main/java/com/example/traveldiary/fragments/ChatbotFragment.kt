@@ -110,10 +110,10 @@ class ChatbotFragment : Fragment() {
 
         //  THE TIMEOUT FIX
         val requestOpts = com.google.ai.client.generativeai.type.RequestOptions(timeout = 60.seconds)
-
+        android.util.Log.e("KEY_CHECK", "My key is: ${com.example.traveldiary.BuildConfig.GEMINI_API_KEY.take(15)}...")
         val generativeModel = GenerativeModel(
             modelName = "gemini-2.5-flash",
-            apiKey = "AIzaSyAbsyZv0vGuVJ0ChC-KDxUJSsDRFhBqf7A",
+            apiKey = com.example.traveldiary.BuildConfig.GEMINI_API_KEY,
             requestOptions = requestOpts
         )
 

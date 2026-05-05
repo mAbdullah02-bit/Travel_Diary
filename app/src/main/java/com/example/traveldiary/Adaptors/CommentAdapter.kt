@@ -46,7 +46,8 @@ class CommentAdapter(private var commentList: List<Comment>) :
     override fun getItemCount(): Int = commentList.size
 
     fun updateData(newList: List<Comment>) {
-        commentList = newList
+        // .toList() creates a fresh copy so the Recycler updates instantly
+        this.commentList = newList.toList()
         notifyDataSetChanged()
     }
 }

@@ -1,17 +1,22 @@
 package com.example.traveldiary.Adaptors
-import android.os.Bundle
+
+import android.graphics.Color
+import android.graphics.drawable.ColorDrawable
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import androidx.fragment.app.Fragment
 import android.widget.ImageView
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
+import com.bumptech.glide.Glide
 import com.example.traveldiary.R
 import com.example.traveldiary.models.Trip
 
-class TripAdapter(private val tripList: MutableList<Trip>,private val onTripClick: (Trip) -> Unit
+class TripAdapter(
+    private var tripList: List<Trip>, // Fix 2: Changed to private var List<Trip> (Requirement F2)
+    private val onTripClick: (Trip) -> Unit
 ) : RecyclerView.Adapter<TripAdapter.TripViewHolder>() {
+
     class TripViewHolder(view: View) : RecyclerView.ViewHolder(view) {
         val tripTitle: TextView = view.findViewById(R.id.card_title)
         val tripLocation: TextView = view.findViewById(R.id.card_location)
@@ -31,20 +36,21 @@ class TripAdapter(private val tripList: MutableList<Trip>,private val onTripClic
         holder.tripTitle.text = currentTrip.title
         holder.tripLocation.text = currentTrip.location
 
-        // --- FIX 1: Handle Database Images ---
-        if (currentTrip.imageUri.isNotEmpty()) {
-            // If there's a URI from the gallery/camera, use it
-            try {
-                holder.tripImage.setImageURI(android.net.Uri.parse(currentTrip.imageUri))
-            } catch (e: SecurityException) {
-                holder.tripImage.setImageResource(currentTrip.imageResId)
-            }
-        } else {
-            // Otherwise, use the default icon
-            holder.tripImage.setImageResource(currentTrip.imageResId)
+        // --- UI Polish: Glide with grayish placeholder (Requirement F4) ---
+        val placeholder = ColorDrawable(Color.parseColor("#D3D3D3"))
+        
+        val imageSource = when {
+            currentTrip.imageUrl.isNotEmpty() -> currentTrip.imageUrl
+            currentTrip.imageUri.isNotEmpty() -> currentTrip.imageUri
+            else -> null
         }
 
-        // --- FIX 2: Show Visibility ---
+        Glide.with(holder.itemView.context)
+            .load(imageSource)
+            .placeholder(placeholder)
+            .error(placeholder)
+            .into(holder.tripImage)
+
         holder.tripVisibility.text = if (currentTrip.isPublic) "Public" else "Private"
 
         holder.itemView.setOnClickListener {
@@ -52,16 +58,11 @@ class TripAdapter(private val tripList: MutableList<Trip>,private val onTripClic
         }
     }
 
+    // Fix 2: Simplified updateData to prevent destroying search filter data
     fun updateData(newList: List<Trip>) {
-        // --- CRITICAL FIX: Prevent clearing if it's the same list object ---
-        if (this.tripList !== newList) {
-            this.tripList.clear()
-            this.tripList.addAll(newList)
-        }
+        this.tripList = newList
         notifyDataSetChanged()
     }
 
-    override fun getItemCount(): Int {
-        return tripList.size
-    }
+    override fun getItemCount(): Int = tripList.size
 }

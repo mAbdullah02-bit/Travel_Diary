@@ -16,12 +16,15 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.lifecycleScope
 import com.example.traveldiary.Activities.LoginActivity
 import com.example.traveldiary.DatabaseHelper
 import com.example.traveldiary.R
+import com.example.traveldiary.utils.FirestoreHelper
 import com.google.android.material.card.MaterialCardView
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.firebase.auth.FirebaseAuth
+import kotlinx.coroutines.launch
 import java.io.File
 import java.io.FileOutputStream
 
@@ -39,6 +42,7 @@ class ProfileFragment : Fragment() {
 
     private lateinit var dbHelper: DatabaseHelper
     private lateinit var auth: FirebaseAuth
+    private val firestoreHelper = FirestoreHelper()
 
     // LAUNCHER: Pick Image from Gallery
     private val pickImageLauncher = registerForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
@@ -102,7 +106,7 @@ class ProfileFragment : Fragment() {
         val btnStorageSettings = view.findViewById<LinearLayout>(R.id.btn_storage_settings)
         val btnFAQ = view.findViewById<LinearLayout>(R.id.profile_support)
         val btnAbout = view.findViewById<LinearLayout>(R.id.btn_about)
-        val btnLogout = view.findViewById<MaterialCardView>(R.id.btn_logout) // NEW LOGOUT BUTTON
+        val btnLogout = view.findViewById<MaterialCardView>(R.id.btn_logout)
 
         // Display current Firebase email
         val currentUserEmail = auth.currentUser?.email ?: "guest@example.com"
@@ -126,7 +130,6 @@ class ProfileFragment : Fragment() {
             showChangePasswordDialog()
         }
 
-        // YOUR ORIGINAL APP PERMISSIONS LOGIC IS PERFECTLY PRESERVED HERE
         btnLocationSettings.setOnClickListener {
             openAppPermissionsSettings()
         }
@@ -158,7 +161,6 @@ class ProfileFragment : Fragment() {
     private fun updateDashboard() {
         val currentUserEmail = auth.currentUser?.email ?: "guest@example.com"
         
-        // Fetch real data from SQLite
         val tripCount = dbHelper.getTripCountForUser(currentUserEmail)
         val photoCount = dbHelper.getPhotoCountForUser(currentUserEmail)
         val placeCount = dbHelper.getPlaceCountForUser(currentUserEmail)
@@ -166,11 +168,7 @@ class ProfileFragment : Fragment() {
         tripsCountText.text = tripCount.toString()
         photosCountText.text = photoCount.toString()
         placesCountText.text = placeCount.toString()
-        
-        // TODO: Integrate with Firebase database in the future for cloud sync
     }
-
-    // --- DATABASE & FIREBASE FUNCTIONS ---
 
     private fun loadUserProfileData(email: String) {
         val cursor = dbHelper.getUserProfile(email)
@@ -188,7 +186,7 @@ class ProfileFragment : Fragment() {
                     profileImageView.setImageURI(Uri.parse(savedPicUri))
                     profileImageView.visibility = View.VISIBLE
                     profileInitialText.visibility = View.GONE
-                } catch (e: SecurityException) {
+                } catch (e: Exception) {
                     e.printStackTrace()
                 }
             }
@@ -205,7 +203,7 @@ class ProfileFragment : Fragment() {
 
         val nameInput = EditText(context).apply {
             hint = "Full Name"
-            setText(profileNameText.text.toString()) // Pre-fills with current name
+            setText(profileNameText.text.toString())
         }
 
         val bioInput = EditText(context).apply {
@@ -220,15 +218,22 @@ class ProfileFragment : Fragment() {
             .setView(layout)
             .setPositiveButton("Save") { _, _ ->
                 val newName = nameInput.text.toString().trim()
+                val newBio = bioInput.text.toString().trim()
                 if (newName.isNotEmpty()) {
                     profileNameText.text = newName
                     profileInitialText.text = newName.first().toString().uppercase()
 
-                    // Save to SQLite
-                    val currentUserEmail = auth.currentUser?.email ?: "guest@example.com"
-                    dbHelper.saveOrUpdateUser(currentUserEmail, newName, bioInput.text.toString(), "")
-
-                    Toast.makeText(context, "Profile Updated", Toast.LENGTH_SHORT).show()
+                    // Requirement F2: Update User document in Firestore
+                    val currentUserEmail = auth.currentUser?.email ?: return@setPositiveButton
+                    lifecycleScope.launch {
+                        try {
+                            firestoreHelper.updateUserProfile(currentUserEmail, newName, newBio)
+                            dbHelper.saveOrUpdateUser(currentUserEmail, newName, newBio, "")
+                            Toast.makeText(context, "Profile Updated", Toast.LENGTH_SHORT).show()
+                        } catch (e: Exception) {
+                            Toast.makeText(context, "Firestore Error: ${e.message}", Toast.LENGTH_LONG).show()
+                        }
+                    }
                 }
             }
             .setNegativeButton("Cancel", null)
@@ -252,11 +257,19 @@ class ProfileFragment : Fragment() {
                 val newPassword = newPassInput.text.toString().trim()
 
                 if (newPassword.length >= 8) {
-                    // Tell Firebase to update the password securely
-                    auth.currentUser?.updatePassword(newPassword)
+                    val user = auth.currentUser
+                    user?.updatePassword(newPassword)
                         ?.addOnCompleteListener { task ->
                             if (task.isSuccessful) {
-                                Toast.makeText(context, "Password updated successfully!", Toast.LENGTH_SHORT).show()
+                                // Requirement F2: Update lastPasswordChange in Firestore
+                                lifecycleScope.launch {
+                                    try {
+                                        firestoreHelper.updatePasswordChangeTimestamp(user.email!!)
+                                        Toast.makeText(context, "Password updated successfully!", Toast.LENGTH_SHORT).show()
+                                    } catch (e: Exception) {
+                                        println("Error updating timestamp: ${e.message}")
+                                    }
+                                }
                             } else {
                                 Toast.makeText(context, "Failed: ${task.exception?.message}", Toast.LENGTH_LONG).show()
                             }
@@ -270,22 +283,14 @@ class ProfileFragment : Fragment() {
     }
 
     private fun performLogout() {
-        // 1. Sign out of Firebase
         auth.signOut()
-
-        // 2. Clear the "Remember Me" SharedPreferences
         val sharedPrefs = requireContext().getSharedPreferences("LoginPrefs", Context.MODE_PRIVATE)
         sharedPrefs.edit().clear().apply()
-
-        // 3. Send back to Login Activity
         val intent = Intent(requireContext(), LoginActivity::class.java)
-        // Clear activity backstack so they can't hit the back button to return to the app
         intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
         startActivity(intent)
         requireActivity().finish()
     }
-
-    // --- YOUR PRESERVED INTENT FUNCTIONS ---
 
     private fun showFAQDialog() {
         MaterialAlertDialogBuilder(requireContext())

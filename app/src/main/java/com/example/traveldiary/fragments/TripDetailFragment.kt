@@ -1,24 +1,29 @@
 package com.example.traveldiary.fragments
 
-import android.net.Uri
+import android.graphics.Color
+import android.graphics.drawable.ColorDrawable
 import android.os.Bundle
-import android.os.Handler
-import android.os.Looper
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.Button
 import android.widget.ImageView
 import android.widget.TextView
-import android.widget.Button
+import android.widget.Toast
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.lifecycleScope
+import com.bumptech.glide.Glide
 import com.example.traveldiary.DatabaseHelper
 import com.example.traveldiary.R
 import com.example.traveldiary.models.Trip
-import com.google.android.material.snackbar.Snackbar
+import com.example.traveldiary.utils.FirestoreHelper
+import com.google.firebase.firestore.FirebaseFirestore
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class TripDetailFragment : Fragment() {
 
-    // We make these global so we can update them when the screen refreshes
     private lateinit var titleView: TextView
     private lateinit var locationView: TextView
     private lateinit var dateView: TextView
@@ -27,6 +32,7 @@ class TripDetailFragment : Fragment() {
 
     private var currentTripId: Int = -1
     private var currentTrip: Trip? = null
+    private val firestoreHelper = FirestoreHelper()
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -34,13 +40,11 @@ class TripDetailFragment : Fragment() {
     ): View? {
         val view = inflater.inflate(R.layout.trip_detail, container, false)
 
-        // 1. Unpack the initial data sent from the Home Screen
         currentTrip = arguments?.getSerializable("TRIP_DATA") as? Trip
         if (currentTrip != null) {
             currentTripId = currentTrip!!.id
         }
 
-        // 2. Find ALL the views
         titleView = view.findViewById(R.id.detail_title)
         locationView = view.findViewById(R.id.detail_location)
         dateView = view.findViewById(R.id.detail_date)
@@ -51,25 +55,10 @@ class TripDetailFragment : Fragment() {
         val deleteButton = view.findViewById<Button>(R.id.detail_delete_btn)
         val backButton = view.findViewById<ImageView>(R.id.detail_back)
 
-        // 3. Populate initial data
         if (currentTrip != null) {
-            titleView.text = currentTrip!!.title
-            locationView.text = currentTrip!!.location
-            dateView.text = currentTrip!!.date
-            descView.text = currentTrip!!.description
-
-            if (currentTrip!!.imageUri.isNotEmpty()) {
-                try {
-                    imageView.setImageURI(Uri.parse(currentTrip!!.imageUri))
-                } catch (e: SecurityException) {
-                    imageView.setImageResource(currentTrip!!.imageResId)
-                }
-            } else {
-                imageView.setImageResource(currentTrip!!.imageResId)
-            }
+            updateUI(currentTrip!!)
         }
 
-        // 4. Button Clicks
         backButton.setOnClickListener {
             parentFragmentManager.popBackStack()
         }
@@ -78,7 +67,6 @@ class TripDetailFragment : Fragment() {
             if (currentTrip != null) {
                 val addTripFragment = AddTripFragment()
                 val bundle = Bundle()
-                // Send the currentTrip (which will be updated by onResume if edited previously)
                 bundle.putSerializable("TRIP_DATA", currentTrip)
                 bundle.putBoolean("IS_EDIT_MODE", true)
                 addTripFragment.arguments = bundle
@@ -91,21 +79,22 @@ class TripDetailFragment : Fragment() {
         }
 
         deleteButton.setOnClickListener {
-            if (currentTripId != -1) {
-                val dbHelper = DatabaseHelper(requireContext())
-                val success = dbHelper.deleteTrip(currentTripId)
+            currentTrip?.let { trip ->
+                Toast.makeText(requireContext(), "Deleting trip...", Toast.LENGTH_SHORT).show()
+                parentFragmentManager.popBackStack()
 
-                if (success) {
-                    Snackbar.make(view, "Trip Deleted Successfully", Snackbar.LENGTH_SHORT)
-                        .setBackgroundTint(resources.getColor(android.R.color.holo_red_dark, null))
-                        .setTextColor(resources.getColor(android.R.color.white, null))
-                        .show()
-
-                    Handler(Looper.getMainLooper()).postDelayed({
-                        parentFragmentManager.popBackStack()
-                    }, 1000)
-                } else {
-                    Snackbar.make(view, "Error deleting trip", Snackbar.LENGTH_SHORT).show()
+                lifecycleScope.launch(Dispatchers.IO) {
+                    try {
+                        if (trip.tripId.isNotEmpty()) {
+                            firestoreHelper.deleteTrip(trip.tripId)
+                        }
+                        val dbHelper = DatabaseHelper(requireContext())
+                        dbHelper.deleteTrip(trip.id)
+                    } catch (e: Exception) {
+                        withContext(Dispatchers.Main) {
+                            println("Background delete failed: ${e.message}")
+                        }
+                    }
                 }
             }
         }
@@ -113,46 +102,49 @@ class TripDetailFragment : Fragment() {
         return view
     }
 
-    // 5. THE FIX: Fetch fresh data from the database every time this screen becomes visible!
+    private fun updateUI(trip: Trip) {
+        titleView.text = trip.title
+        locationView.text = trip.location
+        dateView.text = trip.date
+        descView.text = trip.description
+
+        // Fix: Glide integration for grayscale placeholder
+        val placeholder = ColorDrawable(Color.parseColor("#D3D3D3"))
+
+        val imageSource = when {
+            trip.imageUrl.isNotEmpty() -> trip.imageUrl
+            trip.imageUri.isNotEmpty() -> trip.imageUri
+            else -> null
+        }
+
+        Glide.with(requireContext())
+            .load(imageSource)
+            .placeholder(placeholder)
+            .error(placeholder)
+            .into(imageView)
+    }
+
+    // Fix: Fetch fresh data from Firestore directly to prevent stale data
     override fun onResume() {
         super.onResume()
+        val tripId = currentTrip?.tripId
 
-        if (currentTripId != -1) {
-            val dbHelper = DatabaseHelper(requireContext())
-            val cursor = dbHelper.getSingleTrip(currentTripId)
-
-            if (cursor != null && cursor.moveToFirst()) {
-                val freshTitle = cursor.getString(cursor.getColumnIndexOrThrow("title"))
-                val freshLocation = cursor.getString(cursor.getColumnIndexOrThrow("location"))
-                val freshDate = cursor.getString(cursor.getColumnIndexOrThrow("date"))
-                val freshDesc = cursor.getString(cursor.getColumnIndexOrThrow("description"))
-                val freshImageUri = cursor.getString(cursor.getColumnIndexOrThrow("cover_image"))
-                val isPublic = cursor.getInt(cursor.getColumnIndexOrThrow("is_public")) == 1
-
-                // Update the screen with the fresh data
-                titleView.text = freshTitle
-                locationView.text = freshLocation
-                dateView.text = freshDate
-                descView.text = freshDesc
-
-                if (freshImageUri.isNotEmpty()) {
-                    try {
-                        imageView.setImageURI(Uri.parse(freshImageUri))
-                    } catch (e: SecurityException) {
-                        e.printStackTrace()
+        if (!tripId.isNullOrEmpty()) {
+            FirebaseFirestore.getInstance().collection("trips")
+                .document(tripId)
+                .get()
+                .addOnSuccessListener { document ->
+                    if (document != null && document.exists()) {
+                        val freshTrip = document.toObject(Trip::class.java)
+                        if (freshTrip != null) {
+                            currentTrip = freshTrip
+                            updateUI(freshTrip)
+                        }
                     }
                 }
-
-                // Update our in-memory object so if they click "Edit" again, it sends the new data!
-                currentTrip?.title = freshTitle
-                currentTrip?.location = freshLocation
-                currentTrip?.date = freshDate
-                currentTrip?.description = freshDesc
-                currentTrip?.imageUri = freshImageUri
-                currentTrip?.isPublic = isPublic
-
-                cursor.close()
-            }
+                .addOnFailureListener {
+                    println("Failed to fetch updated trip: ${it.message}")
+                }
         }
     }
 }

@@ -9,7 +9,7 @@ import android.database.sqlite.SQLiteOpenHelper;
 public class DatabaseHelper extends SQLiteOpenHelper {
 
     private static final String DATABASE_NAME = "TravelDiary.db";
-    private static final int DATABASE_VERSION = 4; // Bumped to 4 for Likes and Comments!
+    private static final int DATABASE_VERSION = 5; // Bumped to 5 for Firebase ID!
 
     // USERS Table
     private static final String TABLE_USERS = "users";
@@ -21,6 +21,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
     // TRIPS Table
     private static final String TABLE_TRIPS = "trips";
     private static final String COLUMN_TRIP_ID = "id";
+    private static final String COLUMN_TRIP_FIREBASE_ID = "firebase_id"; // Added for sync
     private static final String COLUMN_TRIP_USER_EMAIL = "user_email";
     private static final String COLUMN_TITLE = "title";
     private static final String COLUMN_LOCATION = "location";
@@ -34,11 +35,6 @@ public class DatabaseHelper extends SQLiteOpenHelper {
     private static final String COLUMN_GALLERY_ID = "id";
     private static final String COLUMN_GALLERY_TRIP_ID = "trip_id";
     private static final String COLUMN_GALLERY_URI = "image_uri";
-
-    // TODO: FUTURE FIREBASE MIGRATION NOTICE
-    // When moving to Firebase, these local SQLite tables will be replaced by 
-    // Firestore collections ('users', 'trips', 'likes', 'comments').
-    // The image_uri fields will store URLs from Firebase Storage.
 
     // NEW: LIKES Table
     private static final String TABLE_LIKES = "likes";
@@ -68,6 +64,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
 
         db.execSQL("CREATE TABLE " + TABLE_TRIPS + " (" +
                 COLUMN_TRIP_ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " +
+                COLUMN_TRIP_FIREBASE_ID + " TEXT, " +
                 COLUMN_TRIP_USER_EMAIL + " TEXT, " +
                 COLUMN_TITLE + " TEXT, " +
                 COLUMN_LOCATION + " TEXT, " +
@@ -83,14 +80,12 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                 COLUMN_GALLERY_URI + " TEXT, " +
                 "FOREIGN KEY(" + COLUMN_GALLERY_TRIP_ID + ") REFERENCES " + TABLE_TRIPS + "(" + COLUMN_TRIP_ID + ") ON DELETE CASCADE)");
 
-        // Create LIKES table
         db.execSQL("CREATE TABLE " + TABLE_LIKES + " (" +
                 COLUMN_LIKE_ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " +
                 COLUMN_LIKE_TRIP_ID + " INTEGER, " +
                 COLUMN_LIKE_USER_EMAIL + " TEXT, " +
                 "FOREIGN KEY(" + COLUMN_LIKE_TRIP_ID + ") REFERENCES " + TABLE_TRIPS + "(" + COLUMN_TRIP_ID + ") ON DELETE CASCADE)");
 
-        // Create COMMENTS table
         db.execSQL("CREATE TABLE " + TABLE_COMMENTS + " (" +
                 COLUMN_COMMENT_ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " +
                 COLUMN_COMMENT_TRIP_ID + " INTEGER, " +
@@ -117,11 +112,13 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                     COLUMN_COMMENT_DATE + " TEXT, " +
                     "FOREIGN KEY(" + COLUMN_COMMENT_TRIP_ID + ") REFERENCES " + TABLE_TRIPS + "(" + COLUMN_TRIP_ID + ") ON DELETE CASCADE)");
         }
+        if (oldVersion < 5) {
+            db.execSQL("ALTER TABLE " + TABLE_TRIPS + " ADD COLUMN " + COLUMN_TRIP_FIREBASE_ID + " TEXT");
+        }
     }
 
     // --- DASHBOARD DATA METHODS ---
 
-    // FOR INDIVIDUAL USER DASHBOARD (Home/Profile)
     public int getTripCountForUser(String email) {
         SQLiteDatabase db = this.getReadableDatabase();
         Cursor cursor = db.rawQuery("SELECT COUNT(*) FROM " + TABLE_TRIPS + " WHERE " + COLUMN_TRIP_USER_EMAIL + "=?", new String[]{email});
@@ -142,43 +139,10 @@ public class DatabaseHelper extends SQLiteOpenHelper {
 
     public int getPhotoCountForUser(String email) {
         SQLiteDatabase db = this.getReadableDatabase();
-        // Count cover images + gallery images for a specific user
         Cursor cursor = db.rawQuery("SELECT " +
                         "(SELECT COUNT(*) FROM " + TABLE_TRIPS + " WHERE " + COLUMN_TRIP_USER_EMAIL + "=? AND " + COLUMN_COVER_IMAGE + " != '') + " +
                         "(SELECT COUNT(*) FROM " + TABLE_GALLERY + " WHERE " + COLUMN_GALLERY_TRIP_ID + " IN (SELECT " + COLUMN_TRIP_ID + " FROM " + TABLE_TRIPS + " WHERE " + COLUMN_TRIP_USER_EMAIL + "=?))",
                 new String[]{email, email});
-        int count = 0;
-        if (cursor.moveToFirst()) count = cursor.getInt(0);
-        cursor.close();
-        return count;
-    }
-
-    // FOR EXPLORE DASHBOARD (Overall Public Data)
-    public int getTotalPublicTripCount() {
-        SQLiteDatabase db = this.getReadableDatabase();
-        Cursor cursor = db.rawQuery("SELECT COUNT(*) FROM " + TABLE_TRIPS + " WHERE " + COLUMN_IS_PUBLIC + "=1", null);
-        int count = 0;
-        if (cursor.moveToFirst()) count = cursor.getInt(0);
-        cursor.close();
-        return count;
-    }
-
-    public int getTotalPublicPlaceCount() {
-        SQLiteDatabase db = this.getReadableDatabase();
-        Cursor cursor = db.rawQuery("SELECT COUNT(DISTINCT " + COLUMN_LOCATION + ") FROM " + TABLE_TRIPS + " WHERE " + COLUMN_IS_PUBLIC + "=1", null);
-        int count = 0;
-        if (cursor.moveToFirst()) count = cursor.getInt(0);
-        cursor.close();
-        return count;
-    }
-
-    public int getTotalPublicPhotoCount() {
-        SQLiteDatabase db = this.getReadableDatabase();
-        // Count all public cover images + their gallery images
-        Cursor cursor = db.rawQuery("SELECT " +
-                        "(SELECT COUNT(*) FROM " + TABLE_TRIPS + " WHERE " + COLUMN_IS_PUBLIC + "=1 AND " + COLUMN_COVER_IMAGE + " != '') + " +
-                        "(SELECT COUNT(*) FROM " + TABLE_GALLERY + " WHERE " + COLUMN_GALLERY_TRIP_ID + " IN (SELECT " + COLUMN_TRIP_ID + " FROM " + TABLE_TRIPS + " WHERE " + COLUMN_IS_PUBLIC + "=1))",
-                null);
         int count = 0;
         if (cursor.moveToFirst()) count = cursor.getInt(0);
         cursor.close();
@@ -256,7 +220,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                 new String[]{String.valueOf(tripId)});
     }
 
-    // --- EXISTING METHODS (Retained) ---
+    // --- USER PROFILE ---
 
     public boolean saveOrUpdateUser(String email, String name, String bio, String profilePicUri) {
         SQLiteDatabase db = this.getWritableDatabase();
@@ -274,6 +238,8 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         return db.rawQuery("SELECT * FROM " + TABLE_USERS + " WHERE " + COLUMN_USER_EMAIL + "=?", new String[]{email});
     }
 
+    // --- TRIP METHODS ---
+
     public boolean isDuplicateTrip(String title, String location, String userEmail, int excludeId) {
         SQLiteDatabase db = this.getReadableDatabase();
         String query = "SELECT * FROM " + TABLE_TRIPS + " WHERE " + COLUMN_TITLE + " = ? AND " + COLUMN_LOCATION + " = ? AND " + COLUMN_TRIP_USER_EMAIL + " = ? AND " + COLUMN_TRIP_ID + " != ?";
@@ -283,9 +249,10 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         return exists;
     }
 
-    public long insertTrip(String userEmail, String title, String location, String date, String description, String coverImage, int isPublic) {
+    public long insertTrip(String firebaseId, String userEmail, String title, String location, String date, String description, String coverImage, int isPublic) {
         SQLiteDatabase db = this.getWritableDatabase();
         ContentValues values = new ContentValues();
+        values.put(COLUMN_TRIP_FIREBASE_ID, firebaseId);
         values.put(COLUMN_TRIP_USER_EMAIL, userEmail);
         values.put(COLUMN_TITLE, title);
         values.put(COLUMN_LOCATION, location);
@@ -296,9 +263,10 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         return db.insert(TABLE_TRIPS, null, values);
     }
 
-    public boolean updateTrip(int tripId, String title, String location, String date, String description, String coverImage, int isPublic) {
+    public boolean updateTrip(int tripId, String firebaseId, String title, String location, String date, String description, String coverImage, int isPublic) {
         SQLiteDatabase db = this.getWritableDatabase();
         ContentValues values = new ContentValues();
+        if (firebaseId != null) values.put(COLUMN_TRIP_FIREBASE_ID, firebaseId);
         values.put(COLUMN_TITLE, title);
         values.put(COLUMN_LOCATION, location);
         values.put(COLUMN_DATE, date);

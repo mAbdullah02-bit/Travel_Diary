@@ -21,4 +21,3 @@ dependencyResolutionManagement {
 
 rootProject.name = "Travel Diary"
 include(":app")
- 

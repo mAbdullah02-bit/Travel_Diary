@@ -1,20 +1,29 @@
 package com.example.traveldiary.models
 
+import com.google.firebase.firestore.PropertyName
 import java.io.Serializable
-import com.example.traveldiary.R
 
 data class Trip(
-    var title: String,
-    var location: String,
-    var date: String,
-    var description: String,
-    var imageResId: Int = R.drawable.ic_image_replacer_foreground,
-    var rating: Double = 0.0,
-    var id: Int = -1,
+    var id: Int = 0, // Local SQLite ID
+    var tripId: String = "", // Firestore Document ID
+    var userEmail: String = "",
+    var title: String = "",
+    var description: String = "",
+    var location: String = "",
+    var date: String = "",
+    var imageUrl: String = "",
     var imageUri: String = "",
+    var imageResId: Int = 0,
+    
+    @get:PropertyName("public")
+    @set:PropertyName("public")
     var isPublic: Boolean = false,
-    var authorName: String = "Unknown User",
+    
+    var authorName: String = "Traveler",
     var likeCount: Int = 0,
     var commentCount: Int = 0,
+    
+    @get:PropertyName("isLikedByMe")
+    @set:PropertyName("isLikedByMe")
     var isLikedByMe: Boolean = false
 ) : Serializable

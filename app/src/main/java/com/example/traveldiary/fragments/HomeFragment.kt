@@ -1,5 +1,6 @@
 package com.example.traveldiary.fragments
 
+import android.content.Intent
 import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
@@ -8,23 +9,30 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.EditText
 import android.widget.TextView
+import androidx.compose.ui.platform.ComposeView
+import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import com.example.traveldiary.DatabaseHelper
 import com.example.traveldiary.R
 import com.example.traveldiary.Adaptors.TripAdapter
+import com.example.traveldiary.components.GuestDashboard
+import com.example.traveldiary.components.TripStatsDashboard
 import com.example.traveldiary.models.Trip
+import com.example.traveldiary.utils.FirestoreHelper
 import com.google.firebase.auth.FirebaseAuth
+import com.example.traveldiary.Activities.LoginActivity
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class HomeFragment : Fragment() {
 
     private lateinit var adapter: TripAdapter
     private var homeTrips = mutableListOf<Trip>()
-    
-    private lateinit var dashtrips: TextView
-    private lateinit var dashpics: TextView
-    private lateinit var dashplaces: TextView
+    private val firestoreHelper = FirestoreHelper()
+    private val auth = FirebaseAuth.getInstance()
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -33,17 +41,19 @@ class HomeFragment : Fragment() {
         val view = inflater.inflate(R.layout.activity_home, container, false)
         val searchBar = view.findViewById<EditText>(R.id.search_bar)
         val recyclerView = view.findViewById<RecyclerView>(R.id.home_recycler_view)
-        
-        dashtrips = view.findViewById(R.id.home_tripsdash)
-        dashpics = view.findViewById(R.id.home_picsdash)
-        dashplaces = view.findViewById(R.id.home_placesdash)
-        
+        val composeView = view.findViewById<ComposeView>(R.id.compose_view_stats)
+        val timelineTitle = view.findViewById<TextView>(R.id.home_timeline)
+
+        // Requirement F4: Ensure ComposeView handles lifecycle correctly
+        composeView.setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
+
         adapter = TripAdapter(homeTrips) { clickedTrip ->
             val detailFragment = TripDetailFragment()
             val bundle = Bundle()
             bundle.putSerializable("TRIP_DATA", clickedTrip)
             detailFragment.arguments = bundle
 
+            // Fix 1: Use .replace() to prevent fragment overlap (Requirement F2)
             parentFragmentManager.beginTransaction()
                 .replace(R.id.fragment_container, detailFragment)
                 .addToBackStack(null)
@@ -56,75 +66,68 @@ class HomeFragment : Fragment() {
         searchBar.addTextChangedListener(object : TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
-
             override fun afterTextChanged(s: Editable?) {
-                val query = s.toString()
-                filterList(query)
+                filterList(s.toString())
             }
         })
+
         val fabAi = view.findViewById<View>(R.id.fab_ai_chat)
         fabAi.setOnClickListener {
+            // Fix 1: Use .replace() for Chatbot navigation
             parentFragmentManager.beginTransaction()
                 .replace(R.id.fragment_container, ChatbotFragment())
                 .addToBackStack(null)
                 .commit()
         }
+
+        val currentUser = auth.currentUser
+        // Fix 2: Home Page Logic - Real-time sync for private trips (Requirement F2)
+        if (currentUser != null && !currentUser.isAnonymous) {
+            recyclerView.visibility = View.VISIBLE
+            searchBar.visibility = View.VISIBLE
+            timelineTitle.visibility = View.VISIBLE
+            setupFirestoreListener(currentUser.email ?: "")
+        } else {
+            // Guest mode: Show Guest Dashboard (Requirement F4)
+            recyclerView.visibility = View.GONE
+            searchBar.visibility = View.GONE
+            timelineTitle.visibility = View.GONE
+            
+            composeView.setContent {
+                GuestDashboard(onSignUpClick = {
+                    val intent = Intent(requireContext(), LoginActivity::class.java)
+                    intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                    startActivity(intent)
+                })
+            }
+        }
+
         return view
     }
 
-    override fun onResume() {
-        super.onResume()
-        injectDummyData()  // seeding
-        loadTripsFromDatabase()
-        updateDashboard()
-    }
-
-    private fun updateDashboard() {
-        val dbHelper = DatabaseHelper(requireContext())
-        val currentUserEmail = FirebaseAuth.getInstance().currentUser?.email ?: "guest@example.com"
-        
-        // Fetching real data from SQLite
-        val tripCount = dbHelper.getTripCountForUser(currentUserEmail)
-        val photoCount = dbHelper.getPhotoCountForUser(currentUserEmail)
-        val placeCount = dbHelper.getPlaceCountForUser(currentUserEmail)
-        
-        dashtrips.text = tripCount.toString()
-        dashpics.text = photoCount.toString()
-        dashplaces.text = placeCount.toString()
-        
-        // TODO: Integrate with Firebase database in the future for cloud sync
-    }
-
-    private fun loadTripsFromDatabase() {
-        val dbHelper = DatabaseHelper(requireContext())
-        val currentUserEmail = FirebaseAuth.getInstance().currentUser?.email ?: "guest@example.com"
-
-        val cursor = dbHelper.getUserTrips(currentUserEmail)
-
-        // Create a local temporary list to hold fresh data
-        val freshTrips = mutableListOf<Trip>()
-
-        if (cursor != null && cursor.moveToFirst()) {
-            do {
-                val trip = Trip(
-                    id = cursor.getInt(cursor.getColumnIndexOrThrow("id")),
-                    title = cursor.getString(cursor.getColumnIndexOrThrow("title")),
-                    location = cursor.getString(cursor.getColumnIndexOrThrow("location")),
-                    date = cursor.getString(cursor.getColumnIndexOrThrow("date")),
-                    description = cursor.getString(cursor.getColumnIndexOrThrow("description")),
-                    imageUri = cursor.getString(cursor.getColumnIndexOrThrow("cover_image")) ?: "",
-                    isPublic = cursor.getInt(cursor.getColumnIndexOrThrow("is_public")) == 1
-                )
-                freshTrips.add(trip)
-            } while (cursor.moveToNext())
-            cursor.close()
+    private fun setupFirestoreListener(email: String) {
+        // Requirement F2: SnapshotListener for real-time private sync
+        firestoreHelper.getUserTripsListener(email) { trips ->
+            // Requirement F2: Update UI on Main thread
+            lifecycleScope.launch(Dispatchers.Main) {
+                homeTrips.clear()
+                homeTrips.addAll(trips)
+                adapter.updateData(homeTrips)
+                updateComposeStats(trips)
+            }
         }
+    }
 
-
-        // Update the master list AND tell the adapter to refresh
-        homeTrips.clear()
-        homeTrips.addAll(freshTrips)
-        adapter.updateData(homeTrips)
+    private fun updateComposeStats(trips: List<Trip>) {
+        val composeView = view?.findViewById<ComposeView>(R.id.compose_view_stats) ?: return
+        val recentLoc = if (trips.isNotEmpty()) trips[0].location else "None"
+        
+        composeView.setContent {
+            TripStatsDashboard(
+                totalTrips = trips.size,
+                recentLocation = recentLoc
+            )
+        }
     }
 
     private fun filterList(query: String) {
@@ -136,24 +139,5 @@ class HomeFragment : Fragment() {
             }
         }
         adapter.updateData(filteredList)
-    }
-    // --- TEMPORARY DATABASE SEEDING ---
-    private fun injectDummyData() {
-        val dbHelper = DatabaseHelper(requireContext())
-        val currentUserEmail = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.email ?: "guest@example.com"
-
-        // Check if the database is empty before injecting so we don't accidentally create hundreds of duplicates!
-        val cursor = dbHelper.getUserTrips(currentUserEmail)
-        val isEmpty = (cursor == null || cursor.count == 0)
-        cursor?.close()
-
-        if (isEmpty) {
-
-            dbHelper.insertTrip(currentUserEmail, "Summer in Paris", "Paris, France", "15/06/2026", "Ate way too many croissants near the Eiffel Tower. The weather was perfect.", "", 1)
-            dbHelper.insertTrip(currentUserEmail, "Hiking the Alps", "Swiss Alps", "12/07/2026", "Beautiful trails, freezing peaks, and amazing hot chocolate.", "", 1)
-            dbHelper.insertTrip(currentUserEmail, "Beach Retreat", "Maldives", "05/08/2026", "Crystal clear water. Spent three days just reading on the sand.", "", 1)
-            dbHelper.insertTrip(currentUserEmail, "Tokyo Neon Lights", "Tokyo, Japan", "10/09/2026", "Explored Akihabara and ate the best sushi of my life.", "", 1)
-            dbHelper.insertTrip(currentUserEmail, "New York Minute", "New York, USA", "20/12/2026", "Times Square was incredibly crowded, but seeing the holiday lights was worth it.", "", 1)
-        }
     }
 }
